@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+local/
+output/
+.playwright-cli/
+monitor.local.json
+*.jsonl
+*.pt
+*.pth
+*.ncu-rep
+*.nsys-rep

@@ -1,0 +1,8 @@
+{
+  "title": "ML Training Monitor",
+  "interval": 2,
+  "gpu_enabled": true,
+  "gpu_indices": null,
+  "disks": [],
+  "runs": []
+}

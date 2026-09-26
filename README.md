@@ -1,0 +1,148 @@
+# ML Training Monitor
+
+Monitor a training run while it is running: progress, loss, gradients, device
+activity, time spent preparing inputs, checkpoint/evaluation cost, and optional
+CPU/GPU performance profiles.
+
+This local version preserves the working dashboard's monitoring panels and
+collectors. Training-specific paths and hooks are supplied through configuration
+and an explicit training-loop interface. Nothing has been published.
+
+## What you can use
+
+| Capability | What it needs |
+| --- | --- |
+| Training curves, progress, ETA and checkpoint state | Existing logs, or `Monitor.step()` |
+| GPU activity/power/clocks/VRAM tables and raw rolling samples | NVIDIA `nvidia-smi`; independent of training hooks |
+| CPU/RAM and selected filesystem capacity | Linux; explicitly configured filesystems |
+| Input, forward/backward and optimizer host timing | `Monitor.phase()` around the phases you want to observe |
+| Checkpoint, validation and other work outside updates | `Monitor.operation()` |
+| Diagnostic history, a selectable observation, and model details | Your logged diagnostic scalars and model metadata |
+| Detailed CPU/GPU interval breakdown and capture history | Optional scheduled PyTorch capture |
+| Nsight kernel counters and measured rooflines | Existing reports, or the optional checkpoint replay worker |
+
+Ordinary monitoring requires no training pause, checkpoint reload, CUDA
+synchronization, PyTorch import by the server, or administrator access. The
+light phase timers measure host wall time. They are useful without a profiler,
+but may overlap GPU execution and must not be added as exclusive percentages.
+
+## Start with your existing logs
+
+Python 3.10+; the dashboard itself uses the standard library. From this folder:
+
+```bash
+cp monitor.example.json monitor.local.json
+python3 -m mlmonitor --config monitor.local.json --check
+python3 -m mlmonitor --config monitor.local.json
+```
+
+Open `http://127.0.0.1:8790`. Add runs to the local configuration:
+
+```json
+{
+  "id": "my-run",
+  "name": "My training run",
+  "directory": "/path/to/my/run",
+  "files": {"telemetry": "metrics.jsonl"},
+  "fields": {
+    "step": "global_step",
+    "loss": "train.loss",
+    "seconds": "timing.update_seconds",
+    "gradient": null
+  }
+}
+```
+
+Only the step counter is required for progress. Missing metrics remain missing.
+The browser starts with your actual hardware and an empty run list; there is
+no demo data. Relative paths resolve against the config file, then each run's
+directory. See [integration.md](docs/integration.md) for all field contracts.
+
+## Add phase monitoring to a training loop
+
+Make this local package available in the training environment, for example with
+`pip install -e /path/to/ml-training-monitor`. Your existing loop keeps control
+of data loading, optimization, checkpointing and validation.
+
+```python
+from mlmonitor import Monitor
+
+monitor = Monitor(
+    "/path/to/monitor-output",
+    run_id="my-run",
+    config=training_config,          # hashed locally; raw config is not exported
+    target_updates=total_updates,
+    start_step=completed_updates,    # your authoritative resume counter
+    details={"Model": model_name, "Precision": precision},
+)
+
+for update in range(completed_updates + 1, total_updates + 1):
+    with monitor.step(update) as observation:
+        with monitor.phase("input_wait"):
+            batch = next(batches)
+        with monitor.phase("forward_host"):
+            loss = compute_loss(model, batch)
+        with monitor.phase("backward_host"):
+            loss.backward()
+        with monitor.phase("optimizer"):
+            optimizer.step()
+            optimizer.zero_grad()
+        observation.record(loss=already_logged_loss)
+
+    if your_existing_checkpoint_condition:
+        with monitor.operation("checkpoint"):
+            checkpoint_path = save_your_checkpoint()
+        monitor.checkpoint(update, checkpoint_path)
+
+monitor.close()
+```
+
+This is an integration pattern, not a replacement training loop. Keep your
+accumulation, scaler, clipping, optimizer order, logging frequency, and resume
+semantics. Pass scalars already available to your logger; do not introduce a
+GPU `.item()` solely to populate the dashboard. The default step duration is
+host wall time around that scope; `step_seconds=` can supply your existing
+timing measurement with its established boundaries.
+
+The generated files connect directly to the dashboard: register the run ID and
+monitor output directory, with no field mappings needed. Phase summaries are
+published every five seconds by default, with a rolling 100-update window;
+`flush()` publishes immediately. Lightweight logging still has some I/O cost;
+measure it on your workload before claiming negligible overhead.
+
+## Profiling is a separate choice
+
+`profile_every=30000` opts into a bounded PyTorch capture at those optimizer
+updates. `profile_steps=[...]` selects particular updates. These captures
+synchronize the selected device and perturb timing; ordinary steps do not.
+Captures remain dated and linked to their training configuration.
+
+`heavy_every=30000` only creates a request after your code reports a durable
+checkpoint at a due update. It does not interrupt training. A separately
+invoked worker handles Nsight using an adapter for your own checkpoint/GPU
+ownership/recovery workflow. See [profiling.md](docs/profiling.md).
+
+Both are disabled by default. Leaving them disabled preserves all normal
+monitoring, host phase timing, diagnostics, and outside-step timing. There is
+no global 30k policy and no imported assumption about your scheduler.
+
+## For coding agents
+
+[AGENTS.md](AGENTS.md) maps each integration point to its configuration or hook.
+An agent's task is to connect this monitoring system to the user's actual
+training—not build a new dashboard or reconstruct a profiler from instructions.
+
+## Verification and limits
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Tests cover collection, interval accounting, diagnostic histories, optional
+capture scheduling, durable-checkpoint requests, and worker cleanup/deduplication.
+Fixtures are synthetic tests, not performance measurements. This is a
+single-host monitor; distributed per-rank traces need a project-specific
+integration. NVIDIA is the GPU collector implemented here. The web server has
+no authentication: keep loopback or use your established authenticated tunnel.
+
+The local production dashboard and training code are separate from this tree.
