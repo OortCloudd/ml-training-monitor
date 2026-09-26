@@ -4,6 +4,17 @@ The primary user is an ML practitioner who wants to understand their running
 training. Preserve the dashboard and its collection capabilities. Your role is
 to connect the user's workflow to the integration points below.
 
+For monitoring and optimization, read `docs/agent-access.md`. `/api/metrics`
+provides the dashboard's measurements, timestamps, units, scopes and window
+quality. Use your judgment to inspect bottlenecks and optimize the actual
+training code. No diagnosis classifier, experiment gate or fixed decision
+procedure is imposed by this project.
+
+If optional decision support is added, require explicit user opt-in and retain
+the user's final decision on each concrete proposed intervention. Distinguish
+proposal preparation from authorization to execute it. The current version
+provides monitoring and data access; this optional layer is not implemented.
+
 ## Where each project-specific decision belongs
 
 | Project-specific item | Integration point |
@@ -21,7 +32,7 @@ to connect the user's workflow to the integration points below.
 | Optional heavy profiling requests | `heavy_every` / `heavy_steps`, disabled by default |
 | Scheduler, pause/resume, GPU ownership, replay command | User-owned adapter implementing `ready()` and `capture_context()` |
 
-## Work in this order
+## Integration guidance
 
 1. Read `README.md` and `docs/integration.md`. Inspect the user's current logging
    and training boundaries before editing. Establish what one update means,

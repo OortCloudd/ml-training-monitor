@@ -129,8 +129,15 @@ no global 30k policy and no imported assumption about your scheduler.
 ## For coding agents
 
 [AGENTS.md](AGENTS.md) maps each integration point to its configuration or hook.
-An agent's task is to connect this monitoring system to the user's actual
-training—not build a new dashboard or reconstruct a profiler from instructions.
+The [agent access guide](docs/agent-access.md) explains how to read the same
+measurements as the dashboard and gives a short optimization method. The agent
+decides how to investigate and improve the user's training; the monitor supplies
+the data and instrumentation.
+
+Real-time metric quality is explicit: source/units, observation window, valid
+sample counts, collection gaps, freshness and timestamp provenance. Dated
+profiles stay separate from live readings. No decision engine or automatic
+acceptance procedure is built into the dashboard.
 
 ## Verification and limits
 

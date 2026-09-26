@@ -44,6 +44,9 @@ class DmonMonitor:
         for index in sorted(set(self.indices or [])|known_indices):
             selected=[r for r in rows if r['gpu']==index];gaps=[b['time']-a['time'] for a,b in zip(selected,selected[1:])]
             groups.append({'index':index,'samples':len(selected),'span_seconds':selected[-1]['time']-selected[0]['time'] if len(selected)>1 else 0,
+                'start':selected[0]['time'] if selected else None,'end':selected[-1]['time'] if selected else None,
+                'last_sample_age_seconds':max(0,now-selected[-1]['time']) if selected else None,
+                'median_interval_seconds':stats(gaps)['p50'],'requested_interval_seconds':1,
                 'max_gap_seconds':max(gaps) if gaps else None,'has_gaps':any(x>2.5 for x in gaps),
                 'stats':{k:stats([r.get(k) for r in selected]) for k in ['sm','mem','pwr','gtemp','pclk','mclk','fb']},
                 'points':[{k:v for k,v in r.items() if k!='raw'} for r in selected]})

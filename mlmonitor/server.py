@@ -9,7 +9,7 @@ import time
 
 from .config import load_config
 from .dmon_monitor import DmonMonitor
-from .gpu_efficiency import capabilities, load_captures, METRICS, window_summary
+from .gpu_efficiency import capabilities, load_captures, METRICS, LIVE_METRICS, window_summary
 from .hardware import Hardware
 from .reader import RunReader
 from .storage import read, finite
@@ -31,17 +31,22 @@ class Sampler:
 
     def collect(self):
         now = time.time()
+        started=time.monotonic()
         hardware = self.hardware.read()
+        hardware_finished=time.time()
         runs, captures, errors = [], [], []
         for reader in self.readers:
             spec = reader.spec
-            run = reader.read(now)
+            run_now=time.time()
+            run = reader.read(run_now)
             binding = read(spec['files']['bindings'])
             sha = spec.get('config_sha256') or binding.get('config_sha256')
+            run['config_sha256']=sha
             profile_path = spec['files']['profile']
-            run['bottleneck'] = load_capture(profile_path, sha, None, now, completed=run['status']=='Terminé',
+            run['bottleneck'] = load_capture(profile_path, sha, None, run_now, completed=run['status']=='Terminé',
                                               current_step=run['step']) if profile_path and sha else {'status':'disabled'}
-            run['light_profile'] = validated_auxiliary(spec['files']['light_profile'], sha, 'phases') or run.pop('logged_phases')
+            logged_phases=run.pop('logged_phases')
+            run['light_profile'] = validated_auxiliary(spec['files']['light_profile'], sha, 'phases') or logged_phases
             run['operations'] = validated_auxiliary(spec['files']['operations'], sha, 'operations')
             run['profile_history'] = reader.profile_history(sha)
             every = spec.get('capture_every', binding.get('profile_every'))
@@ -61,19 +66,26 @@ class Sampler:
         for gpu in hardware['gpus']:
             gpu['run_id']=''
             gpu['run_name']='Charge non identifiée'
-        self.history.append({'time':now,'cpu':hardware['cpu'],'gpus':[
+        self.history.append({'time':hardware_finished,'cpu':hardware['cpu'],'gpus':[
             {k:g.get(k) for k in ('index','uuid','utilization','memory_activity','power','temperature',
                                 'sm_clock','memory_clock','memory_used','power_cap','thermal_cap')}
             for g in hardware['gpus']]})
-        performance={'capabilities':capabilities(),'dmon_live':self.dmon.snapshot(now),
-            'windows':{str(g['index']):window_summary(self.history,g['index'],now,interval=self.settings['interval'])
+        published_at=time.time()
+        cap=capabilities();cap['live_interval_seconds']=self.settings['interval']
+        performance={'capabilities':cap,'dmon_live':self.dmon.snapshot(published_at),
+            'windows':{str(g['index']):window_summary(self.history,g['index'],published_at,interval=self.settings['interval'])
                        for g in hardware['gpus']},
             'captures':sorted(captures,key=lambda c:c['timestamp'],reverse=True),'errors':errors,
             'metric_definitions':{k:{'label':v[0],'unit':v[1],'raw_name':v[2]} for k,v in METRICS.items()},
+            'live_metric_definitions':LIVE_METRICS,
             'dmon_capture':{}}
         with self.lock:
-            self.snapshot={'timestamp':now,'title':self.settings['title'],'hardware':hardware,'runs':runs,
-                           'performance':performance,'history':list(self.history),'interval':self.settings['interval']}
+            self.snapshot={'schema':'ml-monitor-snapshot-v1','timestamp':hardware_finished,'title':self.settings['title'],
+                           'hardware':hardware,'runs':runs,'performance':performance,
+                           'history':list(self.history),'interval':self.settings['interval'],
+                           'collection':{'started_at':now,'hardware_read_finished_at':hardware_finished,
+                                         'published_at':published_at,'duration_seconds':time.monotonic()-started,
+                                         'requested_interval_seconds':self.settings['interval']}}
 
     def loop(self):
         while not self.stop.is_set():
@@ -98,7 +110,8 @@ def validated_auxiliary(path, sha, field):
         seconds,calls=finite(value.get('seconds')),value.get('calls')
         if seconds is None or seconds<0 or type(calls) is not int or calls<0:return None
         clean[key]={'seconds':seconds,'calls':calls,'steps':finite(value.get('steps'))}
-    return {'captured_at':raw['captured_at'],field:clean,**{
+    return {'captured_at':raw['captured_at'],'source':'monitor_summary',
+            'scope':raw.get('scope') if isinstance(raw.get('scope'),str) else None,field:clean,**{
         k:finite(raw.get(k)) for k in ('window_seconds','first_update','last_update','steps','step_seconds')}}
 
 

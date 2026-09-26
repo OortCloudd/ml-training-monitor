@@ -5,6 +5,7 @@ import re
 
 FIELDS = {'step': 'update', 'loss': 'loss_components.loss', 'seconds': 'update_seconds',
           'gradient': 'encoder_gradient_norm', 'timestamp': 'timestamp',
+          'profiled': 'profiled',
           'source_read_seconds': 'source_read_seconds', 'input_prepare_seconds': 'input_prepare_seconds',
           'prepared_input_wait_seconds': 'prepared_input_wait_seconds'}
 FILES = {'telemetry': 'training_telemetry.jsonl', 'state': 'state.json',

@@ -43,6 +43,7 @@ Default telemetry `fields`:
 | `seconds` | `update_seconds` | Seconds with the timing scope you establish |
 | `gradient` | `encoder_gradient_norm` | Existing scalar norm, identify pre/post clipping |
 | `timestamp` | `timestamp` | Unix seconds of observation; otherwise file mtime |
+| `profiled` | `profiled` | Optional boolean indicating an instrumented update |
 | `source_read_seconds` | same name | Optional source-read timer |
 | `input_prepare_seconds` | same name | Optional producer preparation timer |
 | `prepared_input_wait_seconds` | same name | Consumer wait for ready inputs |
@@ -58,6 +59,13 @@ The first observed training point is retained. Subsequent curves use contiguous
 100-record means; the recent summary uses the last 100 records. Diagnostics
 retain their actual observations, including step zero, without averaging.
 Very long runs therefore accumulate chart/diagnostic points in server memory.
+
+The API exposes the exact recent update window and valid sample count for each
+mean in `telemetry_window`. It also reports how many records have a known
+profiling flag and how many were profiled. `freshness` identifies whether age
+comes from a source timestamp or file modification time. A copied file's mtime
+is file activity, not proof of recent training. Negative durations and non-finite
+values are excluded from numeric means and remain missing.
 
 State contract: `status` (`RUNNING`, `COMPLETE`, `PAUSED`, `FAILED`),
 `target_updates`, `durable_checkpoint_update`. Completion is a producer

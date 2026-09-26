@@ -14,6 +14,15 @@ METRICS={
  'issue_active_pct':('Cycles avec émission','%', 'smsp__issue_active.avg.pct_of_peak_sustained_active'),
 }
 LIVE_KEYS=('utilization','memory_activity','power','temperature','sm_clock','memory_clock','memory_used')
+LIVE_METRICS={
+ 'utilization':{'unit':'%','source':'nvidia-smi utilization.gpu','meaning':'Fraction of the driver sampling interval with kernel activity; not compute efficiency.'},
+ 'memory_activity':{'unit':'%','source':'nvidia-smi utilization.memory','meaning':'Fraction of the driver sampling interval with device-memory reads/writes; not memory bandwidth.'},
+ 'memory_used':{'unit':'MiB','source':'nvidia-smi memory.used','meaning':'Device memory capacity in use; board-level, not attributed to one run.'},
+ 'power':{'unit':'W','source':'nvidia-smi power.draw','meaning':'Reported board power reading.'},
+ 'temperature':{'unit':'degC','source':'nvidia-smi temperature.gpu','meaning':'Reported GPU temperature.'},
+ 'sm_clock':{'unit':'MHz','source':'nvidia-smi clocks.current.sm','meaning':'Reported SM clock frequency.'},
+ 'memory_clock':{'unit':'MHz','source':'nvidia-smi clocks.current.memory','meaning':'Reported memory clock frequency.'},
+}
 
 def finite(v):
  return v if isinstance(v,(int,float)) and not isinstance(v,bool) and math.isfinite(v) else None
@@ -37,6 +46,8 @@ def window_summary(history,index,now,seconds=300,interval=1):
   'span_seconds':rows[-1][0]-rows[0][0] if len(rows)>1 else 0,
   'max_gap_seconds':max(gaps) if gaps else None,
   'median_interval_seconds':stats(gaps)['p50'],
+  'requested_interval_seconds':interval,
+  'last_sample_age_seconds':max(0,now-rows[-1][0]) if rows else None,
   'has_gaps':any(g>2.5*interval for g in gaps),
   'stats':{k:stats([g.get(k) for _,g in rows]) for k in LIVE_KEYS},
   'power_cap_observations':sum(g.get('power_cap') is True for _,g in rows),

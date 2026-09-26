@@ -59,7 +59,11 @@ class RunReader:
         if reset:self.rows.clear();self.points=[];self.block=[];self.first=None;self.observations.clear()
         mapping=self.spec['fields']
         for raw in source:
-            row={k:finite(field(raw,path)) for k,path in mapping.items()}
+            row={k:finite(field(raw,path)) for k,path in mapping.items() if k!='profiled'}
+            profiled=field(raw,mapping.get('profiled'))
+            row['profiled']=profiled if type(profiled) is bool else None
+            for key in ('seconds','source_read_seconds','input_prepare_seconds','prepared_input_wait_seconds'):
+                if row.get(key) is not None and row[key]<0:row[key]=None
             if row['step'] is None or row['step']<0 or row['step']!=int(row['step']):continue
             if self.rows and row['step']<=self.rows[-1]['step']:continue
             self.rows.append(row)
@@ -80,9 +84,11 @@ class RunReader:
                                 **{k:finite(v) for k,v in fields.items()}})
         state=read(self.spec['files']['state']);binding=read(self.spec['files']['bindings'])
         latest=self.rows[-1] if self.rows else {}
-        try:age=max(0,now-self.spec['files']['telemetry'].stat().st_mtime)
-        except OSError:age=None
-        if age is not None and latest.get('timestamp') is not None:age=max(0,now-latest['timestamp'])
+        try:file_time=self.spec['files']['telemetry'].stat().st_mtime
+        except OSError:file_time=None
+        source_time=latest.get('timestamp') if file_time is not None and latest.get('timestamp') is not None else file_time
+        time_source='record_timestamp' if file_time is not None and latest.get('timestamp') is not None else 'file_mtime' if file_time is not None else 'unavailable'
+        age=max(0,now-source_time) if source_time is not None else None
         step=latest.get('step',0)
         status='Terminé' if state.get('status')=='COMPLETE' else ('Pas démarré' if not self.rows else
             'Télémétrie récente' if age is not None and age<120 else 'Télémétrie ancienne')
@@ -97,12 +103,21 @@ class RunReader:
         means={k:self.mean([r.get(k) for r in list(self.rows)[-100:]]) for k in ('loss','seconds','gradient')}
         phase_values={}
         recent=list(self.rows)[-100:]
+        telemetry_window={
+            'first_update':recent[0]['step'] if recent else None,'last_update':recent[-1]['step'] if recent else None,
+            'records':len(recent),'requested_records':100,
+            'valid_samples':{k:sum(r.get(k) is not None for r in recent) for k in ('loss','seconds','gradient')},
+            'profiled_records':sum(r.get('profiled') is True for r in recent),
+            'profiling_status_known_records':sum(type(r.get('profiled')) is bool for r in recent),
+            'timing_scope':'Training logger scope; recorded profiled updates are included in the displayed mean.',
+        }
         for source,label in [('source_read_seconds','source_read'),('input_prepare_seconds','cpu_prepare'),
                              ('prepared_input_wait_seconds','input_wait')]:
             values=[r[source] for r in recent if r.get(source) is not None and r[source]>=0]
             if values:phase_values[label]={'seconds':sum(values),'calls':len(values),'steps':len(values)}
         logged_phases={'phases':phase_values,'steps':len(recent),'first_update':recent[0]['step'] if recent else None,
-                       'last_update':step,'captured_at':now-age if age is not None else None} if phase_values and age is not None else None
+                       'last_update':step,'captured_at':source_time,'source':'mapped_telemetry',
+                       'scope':'Inclusive timers from mapped training-log fields.'} if phase_values and age is not None else None
         details=self.spec['details'] or binding.get('details',{})
         if not isinstance(details,dict):details={}
         details={str(k):str(v) for k,v in details.items() if isinstance(v,(str,int,float,bool)) and len(str(v))<=1000}
@@ -115,6 +130,9 @@ class RunReader:
                        'fields':list(details.items())} if details else None,
             'points':[{k:r.get(k) for k in ('step','loss','seconds','gradient')} for r in points],
             'window':len(self.rows),'catching_up':self.streams['telemetry'].backlog,
+            'telemetry_window':telemetry_window,
+            'freshness':{'source':time_source,'reference_at':source_time,'age_seconds':age,
+                         'clock_ahead_seconds':max(0,source_time-now) if source_time is not None else None},
             'logged_phases':logged_phases,
             'observer_error':state.get('observer_error') if isinstance(state.get('observer_error'),str) else None}
 
