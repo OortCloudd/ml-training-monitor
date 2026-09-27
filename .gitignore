@@ -8,8 +8,15 @@ local/
 output/
 .playwright-cli/
 monitor.local.json
+.env
+.env.*
+!.env.example
 *.jsonl
 *.pt
 *.pth
+*.ckpt
+*.safetensors
+*.pt.trace.json
+*.pt.trace.json.gz
 *.ncu-rep
 *.nsys-rep

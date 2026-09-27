@@ -15,3 +15,44 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: python3 -m unittest discover -s tests -v
       - run: python3 -m mlmonitor --config monitor.example.json --check
+  distributions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python3 -m pip install build
+      - run: python3 -m build
+      - name: Verify the source skill and runtime wheel
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tarfile
+          import tempfile
+          import zipfile
+
+          required = {'SKILL.md', 'AGENTS.md', 'README.md', 'LICENSE',
+                      'monitor.example.json', 'scripts/summarize_trace.py'}
+          required.update(str(p) for pattern in ('docs/*.md', 'agents/*.yaml')
+                          for p in Path('.').glob(pattern))
+          with tempfile.TemporaryDirectory() as temporary:
+              with tarfile.open(next(Path('dist').glob('*.tar.gz'))) as archive:
+                  archive.extractall(temporary, filter='data')
+              source = next(Path(temporary).iterdir())
+              missing = sorted(name for name in required if not (source / name).is_file())
+              assert not missing, f'Source distribution is missing: {missing}'
+              subprocess.run([sys.executable, '-m', 'mlmonitor', '--config',
+                              'monitor.example.json', '--check'], cwd=source, check=True)
+              subprocess.run([sys.executable, '-m', 'unittest', 'discover', '-s', 'tests',
+                              '-p', 'test_summarize_trace.py', '-v'], cwd=source, check=True)
+
+          expected = {str(p) for p in Path('mlmonitor').glob('*.py')}
+          expected.add('mlmonitor/index.html')
+          with zipfile.ZipFile(next(Path('dist').glob('*.whl'))) as wheel:
+              runtime = {name for name in wheel.namelist()
+                         if name.startswith('mlmonitor/') and not name.endswith('/')}
+              assert runtime == expected, f'Unexpected wheel payload: {runtime ^ expected}'
+          PY

@@ -44,6 +44,12 @@ Source timestamps and file modification times are distinguished. Profiled
 updates remain in live timing means, with their known count exposed; an absent
 profiling flag is not interpreted as an unprofiled update.
 
+`runs[].producer_status` preserves a recognized producer state (`RUNNING`,
+`PAUSED`, `FAILED`, `COMPLETE`), or null when unavailable. Pause/failure override
+telemetry freshness in the displayed status and suppress ETA. On resume, ETA
+waits for at least one new minute of observed progress. Recent telemetry alone
+does not establish that a training process is still running.
+
 Nsight and framework captures are dated observations, not real-time counters.
 Their configuration identity and capture update remain attached. GPU activity,
 memory activity, VRAM use, bandwidth and arithmetic throughput have different

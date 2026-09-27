@@ -1,0 +1,4 @@
+include AGENTS.md SKILL.md monitor.example.json
+include agents/openai.yaml
+include docs/*.md
+include scripts/summarize_trace.py

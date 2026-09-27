@@ -63,7 +63,9 @@ installed scheduler.
 Keep lightweight telemetry between captures. At a due milestone, use a short
 warmed Systems/framework timeline, then selected Nsight Compute counters only
 where they answer an unresolved question. Follow the bounded-replay and recovery
-procedure in `SKILL.md` if capture requires interrupting training. Record the
+procedure in [performance engineering](performance-engineering.md#active-training-and-bounded-replays)
+and the [profiling recovery contract](profiling.md#the-adapter-supplies-your-workflow-not-a-second-profiler)
+if capture requires interrupting training. Record the
 scheduled milestone and actual captured checkpoint/update; a late capture must
 not be labelled as an earlier measurement.
 

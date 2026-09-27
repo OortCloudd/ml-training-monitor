@@ -93,6 +93,10 @@ by the existing scheduled profiler. The contract also requires the unique
 `gpu_uuids` and an `estimator_sha256`. The API validates the recorded allocation,
 configuration, precision, counted work and unprofiled timing window before
 publishing a percentage. It does not extrapolate a last capture into live MFU.
+The capture must also match the native `run_id` in `run_bindings.json`, or the
+registered run ID when that binding is absent. A dashboard display alias can
+therefore retain the original producer identity. Matching configuration and
+GPU alone does not make a capture from a different run applicable.
 
 The project adapter counts CUDA matrix/convolution/attention operations during
 the profiling update, executing each operator unchanged. A lightweight estimator

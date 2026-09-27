@@ -92,9 +92,15 @@ class RunReader:
         time_source='record_timestamp' if file_time is not None and latest.get('timestamp') is not None else 'file_mtime' if file_time is not None else 'unavailable'
         age=max(0,now-source_time) if source_time is not None else None
         step=latest.get('step',0)
-        status='Terminé' if state.get('status')=='COMPLETE' else ('Pas démarré' if not self.rows else
+        producer_status=state.get('status')
+        if producer_status not in ('RUNNING','COMPLETE','PAUSED','FAILED'):producer_status=None
+        stopped=producer_status in ('COMPLETE','PAUSED','FAILED')
+        status={'COMPLETE':'Terminé','PAUSED':'En pause','FAILED':'Échec'}.get(producer_status) or (
+            'Pas démarré' if not self.rows else
             'Télémétrie récente' if age is not None and age<120 else 'Télémétrie ancienne')
-        if not self.streams['telemetry'].backlog:self.observations.append((now,step))
+        # A new progress window is required after an observed pause or failure.
+        if stopped:self.observations.clear()
+        elif not self.streams['telemetry'].backlog:self.observations.append((now,step))
         while self.observations and now-self.observations[0][0]>600:self.observations.popleft()
         speed=None
         if self.observations and now-self.observations[0][0]>=60 and step>self.observations[0][1]:
@@ -124,7 +130,7 @@ class RunReader:
         if not isinstance(details,dict):details={}
         details={str(k):str(v) for k,v in details.items() if isinstance(v,(str,int,float,bool)) and len(str(v))<=1000}
         mfu_contract=self.spec.get('mfu')
-        mfu=(summarize_capture(self.spec['files']['mfu_capture'],mfu_contract,binding,now)
+        mfu=(summarize_capture(self.spec['files']['mfu_capture'],mfu_contract,binding,now,run_id=self.spec['id'])
              if mfu_contract and mfu_contract['mode']=='capture' else
              summarize_mfu(mfu_contract,binding,recent,age=age,completed=status=='Terminé',
                            catching_up=self.streams['telemetry'].backlog))
@@ -133,7 +139,7 @@ class RunReader:
             elif mfu.get('capture_update',0)>step:mfu={'status':'unavailable','percent':None,'range_percent':None,'reason':'capture_ahead_of_progress'}
         fingerprint=self.spec.get('config_sha256');verified=not fingerprint or fingerprint==binding.get('config_sha256')
         return {'id':self.spec['id'],'name':self.spec['name'],'step_unit':self.spec['step_unit'],
-            'status':status,'step':step,'target':target,'age':age,'eta':eta,**means,
+            'status':status,'producer_status':producer_status,'step':step,'target':target,'age':age,'eta':eta,**means,
             'checkpoint':finite(state.get('durable_checkpoint_update')),'health':summary.get('healthy'),
             'health_step':summary.get('step'),'health_points':self.health,'diagnostics':self.spec['diagnostics'],
             'network':{'status':'Configured metadata' if verified else 'Configuration mismatch',

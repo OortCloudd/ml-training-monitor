@@ -80,8 +80,13 @@ values are excluded from numeric means and remain missing.
 
 State contract: `status` (`RUNNING`, `COMPLETE`, `PAUSED`, `FAILED`),
 `target_updates`, `durable_checkpoint_update`. Completion is a producer
-assertion, not inferred from a budget. ETA uses observed progress over at least
-a minute, not log-reading speed. Write state atomically if adapting a producer.
+assertion, not inferred from a budget. The API preserves the recognized state
+in `producer_status`; pause and failure remain visible even without telemetry.
+For running or unspecified state, the displayed status describes telemetry
+freshness, not verified process activity. ETA uses observed progress over at least
+a minute, not log-reading speed. Paused, failed and completed runs have no ETA;
+resuming requires a new observation window. Write state atomically if adapting
+a producer.
 
 ## Diagnostic panels and model details
 

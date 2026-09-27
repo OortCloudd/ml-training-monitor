@@ -1,5 +1,30 @@
 # Validation records
 
+## Release readiness review — 28 September 2026
+
+- **76 tests passed**, including CPU PyTorch parity and new regressions for
+  producer pause/failure, ETA after resume, and periodic MFU run identity.
+  Pause/failure now work in the supplied reader and dashboard without the local
+  override used in the previous archive exercise.
+- **Clean distribution checks passed:** the source archive includes the skill,
+  agent instructions, generic configuration, documentation and trace helper.
+  A wheel built from that archive contains the expected runtime modules and HTML.
+  The archive's configuration check and six trace-helper tests pass; CI now
+  repeats these checks when publishing a change.
+- **Browser checks passed** on a temporary CPU-only server with synthetic run
+  records: pause/failure labels and unavailable ETA, failure before any telemetry,
+  and rejection of another run's MFU capture. English/French rendering produced
+  no JavaScript console errors; the 390-pixel viewport had no horizontal overflow.
+- **Publication review:** all seven commits reachable from the published
+  `bdae2b1` revision, its Git archive, and candidate Python distributions were
+  inspected for private deployment paths, credentials and training artifacts.
+  None were found by the checks. Public author attribution remains. Added ignore
+  rules cover environment files, additional checkpoint formats and profiler exports.
+
+These checks use synthetic inputs and CPU tests. They do not qualify physical
+GPU profiler overhead, a site's scheduler recovery, live cluster transport or
+training speedups. No active training or deployed dashboard was changed.
+
 ## Agent adaptation update — 27 September 2026
 
 - **70 tests passed**, including the CPU PyTorch model/optimizer/RNG/loss parity

@@ -4,7 +4,7 @@ from .storage import finite
 from .uncertainty import rate_interval
 
 
-def summarize_capture(path,contract,binding,now):
+def summarize_capture(path,contract,binding,now,*,run_id=None):
     empty={'status':'unavailable','percent':None,'range_percent':None,'reason':'capture_missing'}
     if contract is None:return empty
     if contract['config_sha256']!=binding.get('config_sha256'):
@@ -18,6 +18,9 @@ def summarize_capture(path,contract,binding,now):
     try:
         if path.stat().st_size>2_000_000:raise ValueError('oversized capture')
         c=json.loads(path.read_bytes())
+        expected_run=binding.get('run_id') or run_id
+        if not isinstance(expected_run,str) or not expected_run or c.get('run_id')!=expected_run:
+            return dict(empty,reason='capture_run_mismatch')
         if (c['schema']!='mfu-periodic-capture-v1' or c['valid'] is not True
                 or c['config_sha256']!=contract['config_sha256']
                 or c['estimator_sha256']!=contract['estimator_sha256']

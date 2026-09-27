@@ -57,7 +57,8 @@ but may overlap GPU execution and must not be added as exclusive percentages.
 
 ## Start with your existing logs
 
-Python 3.10+; the dashboard itself uses the standard library. From this folder:
+Linux and Python 3.10+; the dashboard itself uses the standard library. Clone
+the complete skill and dashboard:
 
 ```bash
 git clone https://github.com/OortCloudd/ml-training-monitor.git
@@ -92,8 +93,10 @@ directory. See [integration.md](docs/integration.md) for all field contracts.
 ## Add phase monitoring to a training loop
 
 Make this local package available in the training environment, for example with
-`pip install -e /path/to/ml-training-monitor`. Your existing loop keeps control
-of data loading, optimization, checkpointing and validation.
+`pip install -e /path/to/ml-training-monitor`. A built wheel installs the Python
+runtime and dashboard; keep the Git checkout or source archive for the skill,
+agent instructions, templates and offline trace helper. Your existing loop keeps
+control of data loading, optimization, checkpointing and validation.
 
 ```python
 from mlmonitor import Monitor
