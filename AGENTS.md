@@ -1,5 +1,10 @@
 # Connect the monitor to an ML training project
 
+[SKILL.md](SKILL.md) is the unified entry. Performance investigation, runtime
+inspection and MFU references are included in this repository; no separate
+performance skill is required. Preserve every existing monitoring, profiling
+and optional proposal-review capability when extending the integration.
+
 The primary user is an ML practitioner who wants to understand their running
 training. Preserve the dashboard and its collection capabilities. Your role is
 to connect the user's workflow to the integration points below.
@@ -22,10 +27,12 @@ blanket permission to modify training.
 | Project-specific item | Integration point |
 | --- | --- |
 | Runs, file locations, visible filesystems, physical GPU selection | Ignored `monitor.local.json` |
+| Existing scheduler run/PID/GPU identity | Optional `runs[].runtime` JSON mapping, verified against the GPU's sole compute PID |
 | Existing JSONL field names | `runs[].fields` and `runs[].files` |
 | Completed update counter and resume position | `Monitor.step(update)` and constructor `start_step` |
 | Input, forward, backward, optimizer and checking boundaries | `Monitor.phase(name)` in the existing loop |
 | Existing scalar loss/gradient/timing measurements | `observation.record(...)` |
+| Useful-model FLOP counts and the precision-matched hardware ceiling | `runs[].mfu`, mapped `fields.model_flops`, or optional `observation.record(model_flops=...)`; see `docs/mfu.md` |
 | Checkpoint, evaluation and logging costs outside updates | `Monitor.operation(name)` |
 | Durable checkpoint path, including terminal checkpoint | `Monitor.checkpoint(update, path, terminal=...)` AFTER the save |
 | Model/optimizer facts intended for display | `details`; the raw training config is never exported |
@@ -60,6 +67,7 @@ Do not bring in this monitor's original research deployment assumptions.
 
 - `mlmonitor/recorder.py`: light hooks and optional framework capture.
 - `mlmonitor/reader.py`: existing-log adapters and histories.
+- `mlmonitor/mfu.py`: shared MFU contract, aligned window calculation and provenance.
 - `mlmonitor/config.py`: explicit deployment settings.
 - `mlmonitor/step_attribution.py`: exclusive interval accounting.
 - `mlmonitor/worker.py`: optional heavy capture worker and `CapturePlan`.
@@ -68,6 +76,8 @@ Do not bring in this monitor's original research deployment assumptions.
 - `mlmonitor/server.py`, `index.html`: the existing dashboard panels.
 - `mlmonitor/advice.py`, `proposals.py`: optional measured leads, proposal
   records and the agent interface; human review remains separate.
+- `docs/performance-engineering.md`, `measurement.md`, `gpu-efficiency.md`:
+  integrated investigation method; `scripts/summarize_trace.py` reads existing traces.
 
 Run `python3 -m unittest discover -s tests -v`. Keep `local/`, runtime files,
 traces, credentials, and private deployment settings out of commits. Publishing

@@ -17,6 +17,10 @@ The latter two describe an external producer's schedule for display; they do
 not start captures. The monitor's generated binding file supplies its own
 schedule when those settings are omitted.
 
+Optional `mfu` registers the useful-FLOP budget/count source, timing boundary
+and precision-matched hardware ceiling. See [mfu.md](mfu.md). It does not infer
+model architecture or launch computation. Omission preserves all other panels.
+
 Default files within each run directory:
 
 | `files` key | Filename | Producer |
@@ -45,6 +49,7 @@ Default telemetry `fields`:
 | `gradient` | `encoder_gradient_norm` | Existing scalar norm, identify pre/post clipping |
 | `timestamp` | `timestamp` | Unix seconds of observation; otherwise file mtime |
 | `profiled` | `profiled` | Optional boolean indicating an instrumented update |
+| `model_flops` | `model_flops` | Optional useful forward/backward FLOPs for the same complete update |
 | `source_read_seconds` | same name | Optional source-read timer |
 | `input_prepare_seconds` | same name | Optional producer preparation timer |
 | `prepared_input_wait_seconds` | same name | Consumer wait for ready inputs |
@@ -110,6 +115,11 @@ Place `Monitor.step(update)` around one whole optimizer update, including all
 microbatches if using accumulation. `observation.record` accepts existing Python
 scalars. A tensor is treated as unavailable; the hook never calls `.item()`.
 
+`observation.record(model_flops=...)` additionally accepts an already available
+scalar useful-operation count for MFU. No shape logging, extra model execution
+or device synchronization is introduced. A matching MFU contract is separately
+configured for display.
+
 `phase()` times explicit host boundaries on the main training thread. Nested
 timers and asynchronous work can overlap, so the ordinary phase table presents
 durations/call counts rather than claiming an additive critical-path partition.
@@ -145,3 +155,12 @@ GPU activity remains board-level activity; it is not automatically assigned to
 one training job. Multiple jobs, missing hardware and unsupported counters
 must remain visible limitations. The live GPU view is optional; CPU-side
 monitoring and training panels continue when NVIDIA tools are absent.
+
+An optional run `runtime` mapping can identify an existing scheduler record:
+`path`, optional dot-separated `fields` for `run_id`, `pid`, `gpu_uuid`, `status`,
+and optional `run_id_value` / `running_value` (defaults: the configured run ID
+and `RUNNING`). Only a unique matching scheduler record whose PID is the sole
+reported compute process on the specified GPU receives a verified association.
+Missing/ambiguous/mismatched ownership stays unidentified. This mapping reads
+JSON only; it neither imports a scheduler adapter nor controls a process.
+Confirmed PIDs also distinguish current-process from historical captures.

@@ -2,10 +2,12 @@
 import json
 from pathlib import Path
 import re
+from .mfu import validate_contract
 
 FIELDS = {'step': 'update', 'loss': 'loss_components.loss', 'seconds': 'update_seconds',
           'gradient': 'encoder_gradient_norm', 'timestamp': 'timestamp',
           'profiled': 'profiled',
+          'model_flops': 'model_flops',
           'source_read_seconds': 'source_read_seconds', 'input_prepare_seconds': 'input_prepare_seconds',
           'prepared_input_wait_seconds': 'prepared_input_wait_seconds'}
 FILES = {'telemetry': 'training_telemetry.jsonl', 'state': 'state.json',
@@ -50,7 +52,7 @@ def load_config(path):
     ids = set()
     for r in raw.get('runs', []):
         allowed = {'id', 'name', 'directory', 'files', 'fields', 'target_updates', 'step_unit', 'diagnostics',
-                   'diagnostic_fields', 'details', 'config_sha256', 'capture_every', 'capture_steps'}
+                   'diagnostic_fields', 'details', 'config_sha256', 'capture_every', 'capture_steps', 'mfu', 'runtime'}
         if not isinstance(r, dict) or set(r) - allowed:
             raise ValueError('unknown run settings')
         key = r.get('id')
@@ -92,7 +94,26 @@ def load_config(path):
         config_sha = r.get('config_sha256')
         if config_sha is not None and (not isinstance(config_sha, str) or not re.fullmatch('[a-f0-9]{64}', config_sha)):
             raise ValueError('config_sha256 must be a lowercase SHA-256 digest')
-        result['runs'].append({**r, 'id': key, 'name': r.get('name', key), 'directory': folder,
+        mfu = validate_contract(r.get('mfu'))
+        if mfu and config_sha and mfu['config_sha256'] != config_sha:
+            raise ValueError('mfu and run configuration identities differ')
+        runtime = r.get('runtime')
+        if runtime is not None:
+            if not isinstance(runtime, dict) or set(runtime) - {'path', 'fields', 'run_id_value', 'running_value'}:
+                raise ValueError('runtime accepts path, fields and expected run/status values')
+            runtime_fields = {'run_id': 'run_id', 'pid': 'pid', 'gpu_uuid': 'gpu_uuid', 'status': 'status'}
+            supplied = runtime.get('fields', {})
+            if not isinstance(supplied, dict) or set(supplied) - set(runtime_fields):
+                raise ValueError('unknown runtime mapping')
+            runtime_fields.update(supplied)
+            if any(not isinstance(v, str) or not v for v in runtime_fields.values()):
+                raise ValueError('runtime fields must be dot-separated names')
+            runtime = {**runtime, 'path': resolve(runtime['path'], folder), 'fields': runtime_fields,
+                       'run_id_value': runtime.get('run_id_value', key),
+                       'running_value': runtime.get('running_value', 'RUNNING')}
+            if any(not isinstance(runtime[k], str) or not runtime[k] for k in ('run_id_value', 'running_value')):
+                raise ValueError('runtime expected values must be nonempty strings')
+        result['runs'].append({**r, 'id': key, 'name': r.get('name', key), 'directory': folder, 'mfu': mfu, 'runtime': runtime,
             'files': {k: resolve(v, folder) if v is not None else None for k, v in {**FILES, **files}.items()},
             'fields': fields, 'diagnostic_fields': df, 'diagnostics': diagnostics, 'details': details,
             'step_unit': r.get('step_unit', 'optimizer updates')})

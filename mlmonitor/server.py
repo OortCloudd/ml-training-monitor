@@ -19,6 +19,7 @@ from .storage import read, finite
 from .step_attribution import load_capture
 from .recorder import next_capture
 from .advice import ProposalStore, opportunities
+from .runtime import assign_runs
 
 BASE = Path(__file__).resolve().parent
 
@@ -41,6 +42,7 @@ class Sampler:
         started=time.monotonic()
         hardware = self.hardware.read()
         hardware_finished=time.time()
+        processes = assign_runs(hardware['gpus'], self.settings['runs'])
         runs, captures, errors = [], [], []
         for reader in self.readers:
             spec = reader.spec
@@ -50,7 +52,7 @@ class Sampler:
             sha = spec.get('config_sha256') or binding.get('config_sha256')
             run['config_sha256']=sha
             profile_path = spec['files']['profile']
-            run['bottleneck'] = load_capture(profile_path, sha, None, run_now, completed=run['status']=='Terminé',
+            run['bottleneck'] = load_capture(profile_path, sha, processes.get(run['id']), run_now, completed=run['status']=='Terminé',
                                               current_step=run['step']) if profile_path and sha else {'status':'disabled'}
             logged_phases=run.pop('logged_phases')
             run['light_profile'] = validated_auxiliary(spec['files']['light_profile'], sha, 'phases') or logged_phases
@@ -70,9 +72,6 @@ class Sampler:
                 captures.extend(c for c in found if c['run_id']==run['id'])
                 errors.extend(errs)
             runs.append(run)
-        for gpu in hardware['gpus']:
-            gpu['run_id']=''
-            gpu['run_name']='Charge non identifiée'
         self.history.append({'time':hardware_finished,'cpu':hardware['cpu'],'gpus':[
             {k:g.get(k) for k in ('index','uuid','utilization','memory_activity','power','temperature',
                                 'sm_clock','memory_clock','memory_used','power_cap','thermal_cap')}

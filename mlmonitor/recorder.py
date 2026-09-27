@@ -57,9 +57,10 @@ class Observation:
     def __init__(self):
         self.values = {}
 
-    def record(self, *, loss=None, gradient_norm=None, step_seconds=None):
+    def record(self, *, loss=None, gradient_norm=None, step_seconds=None, model_flops=None):
         # The caller supplies existing scalars; never call .item() on a tensor.
-        self.values = {'loss': finite(loss), 'gradient': finite(gradient_norm), 'seconds': finite(step_seconds)}
+        self.values = {'loss': finite(loss), 'gradient': finite(gradient_norm), 'seconds': finite(step_seconds),
+                       'model_flops': finite(model_flops)}
 
 
 class Monitor:
@@ -221,6 +222,8 @@ class Monitor:
                 row = {'update': update, 'timestamp': time.time(), 'loss_components': {'loss': supplied.get('loss')},
                        'encoder_gradient_norm': supplied.get('gradient'), 'update_seconds': seconds,
                        'host_scope_seconds': elapsed, 'profiled': capture is not None}
+                if supplied.get('model_flops') is not None:
+                    row['model_flops'] = supplied['model_flops']
                 for phase, key in [('input_wait', 'prepared_input_wait_seconds'), ('cpu_prepare', 'input_prepare_seconds')]:
                     row[key] = self.phases.get(phase, {}).get('seconds')
                 self._append('training_telemetry.jsonl', row)

@@ -9,11 +9,17 @@ hooks supplied through configuration and an explicit training-loop interface.
 The core is local monitoring; optional decision support lets an agent prepare
 concrete interventions for the user's review.
 
+[SKILL.md](SKILL.md) is the unified agent entry for this dashboard, runtime
+inspection, MFU and performance engineering. All existing collection and
+optional review workflows remain available. See [unification](docs/unification.md)
+for the integration map and migration procedure.
+
 ## What you can use
 
 | Capability | What it needs |
 | --- | --- |
 | Training curves, progress, ETA and checkpoint state | Existing logs, or `Monitor.step()` |
+| Useful compute throughput / MFU, with estimates or bounds | Explicit FLOP/timing/hardware contract; optional per-update counts |
 | GPU activity/power/clocks/VRAM tables and raw rolling samples | NVIDIA `nvidia-smi`; independent of training hooks |
 | CPU/RAM and selected filesystem capacity | Linux; explicitly configured filesystems |
 | Input, forward/backward and optimizer host timing | `Monitor.phase()` around the phases you want to observe |
@@ -175,5 +181,14 @@ integration. NVIDIA is the GPU collector implemented here. The web server has
 no authentication: keep loopback or use your established authenticated tunnel.
 
 Apache-2.0. See [LICENSE](LICENSE). This project is separate from the
-[ML Performance Engineering skill](https://github.com/OortCloudd/ml-performance-engineering),
-which provides broader investigation guidance.
+[historical ML Performance Engineering repository](https://github.com/OortCloudd/ml-performance-engineering);
+its investigation guidance and trace helper are now included here, under the
+unified [ML Training Monitor skill](SKILL.md). No second skill installation is
+needed. Existing skill-name callers can use a compatibility redirect during
+migration; preserve the older repository as provenance rather than maintaining
+two independent methods.
+
+To make a checkout discoverable as a Codex skill, link the checkout directory
+into `~/.codex/skills/ml-training-monitor`. Use one checkout as the maintained
+source; do not copy a second dashboard under the skills directory. The Python
+package and the skill entry belong to that same checkout.

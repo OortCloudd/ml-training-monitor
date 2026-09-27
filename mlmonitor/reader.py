@@ -6,6 +6,7 @@ import os
 import statistics
 
 from .storage import finite, field, read
+from .mfu import summarize as summarize_mfu
 
 
 class JsonLines:
@@ -131,6 +132,8 @@ class RunReader:
             'points':[{k:r.get(k) for k in ('step','loss','seconds','gradient')} for r in points],
             'window':len(self.rows),'catching_up':self.streams['telemetry'].backlog,
             'telemetry_window':telemetry_window,
+            'mfu':summarize_mfu(self.spec.get('mfu'),binding,recent,age=age,completed=status=='Terminé',
+                                catching_up=self.streams['telemetry'].backlog),
             'freshness':{'source':time_source,'reference_at':source_time,'age_seconds':age,
                          'clock_ahead_seconds':max(0,source_time-now) if source_time is not None else None},
             'logged_phases':logged_phases,
