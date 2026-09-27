@@ -15,10 +15,10 @@ def validate_contract(value):
     required = {'config_sha256', 'gpu_model', 'gpu_count', 'precision', 'sparsity',
                 'peak_tflops_per_gpu', 'peak_source', 'flop_source', 'timing_scope', 'mode'}
     allowed = required | {'flops_per_update', 'flops_per_update_bounds',
-                          'dataset_manifest_sha256', 'assumptions'}
+                          'dataset_manifest_sha256', 'assumptions', 'gpu_uuids', 'estimator_sha256'}
     if not isinstance(value, dict) or required - value.keys() or value.keys() - allowed:
         raise ValueError('mfu requires explicit FLOP, timing, configuration and hardware provenance')
-    for key in ('config_sha256', 'dataset_manifest_sha256'):
+    for key in ('config_sha256', 'dataset_manifest_sha256', 'estimator_sha256'):
         if key in value and (not isinstance(value[key], str) or not re.fullmatch('[a-f0-9]{64}', value[key])):
             raise ValueError('mfu ' + key + ' must be a SHA-256 digest')
     for key in ('gpu_model', 'precision', 'peak_source', 'flop_source', 'timing_scope'):
@@ -30,8 +30,8 @@ def validate_contract(value):
         raise ValueError('mfu requires positive GPU count and peak')
     if not positive(value['gpu_count'] * value['peak_tflops_per_gpu'] * 1e12):
         raise ValueError('mfu hardware peak overflows')
-    if value['mode'] not in ('per_step', 'constant', 'bounds'):
-        raise ValueError('mfu mode must be per_step, constant or bounds')
+    if value['mode'] not in ('per_step', 'constant', 'bounds', 'capture'):
+        raise ValueError('mfu mode must be per_step, constant, bounds or capture')
     point = value.get('flops_per_update')
     bounds = value.get('flops_per_update_bounds')
     if value['mode'] == 'constant' and not positive(point):
@@ -49,6 +49,14 @@ def validate_contract(value):
     assumptions = value.get('assumptions', [])
     if not isinstance(assumptions, list) or any(not isinstance(s, str) or len(s) > 2000 for s in assumptions):
         raise ValueError('mfu assumptions must be a list of descriptions')
+    if value['mode']=='capture':
+        if value['precision'].lower() not in ('bf16','fp16','fp32','fp64'):
+            raise ValueError('capture requires a supported single arithmetic precision')
+        uuids=value.get('gpu_uuids')
+        if (not isinstance(uuids,list) or len(uuids)!=value['gpu_count']
+                or any(not isinstance(x,str) or not x for x in uuids) or len(set(uuids))!=len(uuids)
+                or not value.get('estimator_sha256')):
+            raise ValueError('capture requires explicit unique GPU allocation and estimator identity')
     return dict(value, assumptions=assumptions)
 
 

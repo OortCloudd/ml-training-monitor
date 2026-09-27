@@ -13,7 +13,7 @@ FIELDS = {'step': 'update', 'loss': 'loss_components.loss', 'seconds': 'update_s
 FILES = {'telemetry': 'training_telemetry.jsonl', 'state': 'state.json',
          'health': 'health_events.jsonl', 'bindings': 'run_bindings.json',
          'profile': 'profile.json', 'light_profile': 'phase_timings.json',
-         'operations': 'operations.json', 'profiles': 'profile_history.jsonl', 'captures': 'nsight'}
+         'mfu_capture': None, 'operations': 'operations.json', 'profiles': 'profile_history.jsonl', 'captures': 'nsight'}
 
 
 def load_config(path):

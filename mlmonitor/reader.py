@@ -7,6 +7,7 @@ import statistics
 
 from .storage import finite, field, read
 from .mfu import summarize as summarize_mfu
+from .mfu_capture import summarize_capture
 
 
 class JsonLines:
@@ -122,6 +123,14 @@ class RunReader:
         details=self.spec['details'] or binding.get('details',{})
         if not isinstance(details,dict):details={}
         details={str(k):str(v) for k,v in details.items() if isinstance(v,(str,int,float,bool)) and len(str(v))<=1000}
+        mfu_contract=self.spec.get('mfu')
+        mfu=(summarize_capture(self.spec['files']['mfu_capture'],mfu_contract,binding,now)
+             if mfu_contract and mfu_contract['mode']=='capture' else
+             summarize_mfu(mfu_contract,binding,recent,age=age,completed=status=='Terminé',
+                           catching_up=self.streams['telemetry'].backlog))
+        if mfu_contract and mfu_contract['mode']=='capture':
+            if self.streams['telemetry'].backlog:mfu={'status':'unavailable','percent':None,'range_percent':None,'reason':'catching_up'}
+            elif mfu.get('capture_update',0)>step:mfu={'status':'unavailable','percent':None,'range_percent':None,'reason':'capture_ahead_of_progress'}
         fingerprint=self.spec.get('config_sha256');verified=not fingerprint or fingerprint==binding.get('config_sha256')
         return {'id':self.spec['id'],'name':self.spec['name'],'step_unit':self.spec['step_unit'],
             'status':status,'step':step,'target':target,'age':age,'eta':eta,**means,
@@ -132,8 +141,7 @@ class RunReader:
             'points':[{k:r.get(k) for k in ('step','loss','seconds','gradient')} for r in points],
             'window':len(self.rows),'catching_up':self.streams['telemetry'].backlog,
             'telemetry_window':telemetry_window,
-            'mfu':summarize_mfu(self.spec.get('mfu'),binding,recent,age=age,completed=status=='Terminé',
-                                catching_up=self.streams['telemetry'].backlog),
+            'mfu':mfu,
             'freshness':{'source':time_source,'reference_at':source_time,'age_seconds':age,
                          'clock_ahead_seconds':max(0,source_time-now) if source_time is not None else None},
             'logged_phases':logged_phases,

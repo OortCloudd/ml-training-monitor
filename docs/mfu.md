@@ -85,3 +85,43 @@ ceiling without proving that the actual workload did; a lower bound above the
 ceiling is inconsistent. Low MFU alone does not diagnose its cause or authorize
 changing the scientific recipe. Use the timeline and controlled comparisons
 in [performance engineering](performance-engineering.md).
+
+## Periodic capture mode
+
+Use `mode: "capture"` and `files.mfu_capture` for a dated measurement produced
+by the existing scheduled profiler. The contract also requires the unique
+`gpu_uuids` and an `estimator_sha256`. The API validates the recorded allocation,
+configuration, precision, counted work and unprofiled timing window before
+publishing a percentage. It does not extrapolate a last capture into live MFU.
+
+The project adapter counts CUDA matrix/convolution/attention operations during
+the profiling update, executing each operator unchanged. A lightweight estimator
+uses the actual input/output tensor shapes on the preceding unprofiled updates.
+Its count must match the dispatched operator count. Numerator and denominator
+come from the same reference updates. Profiling time is never substituted for
+ordinary step time. Recomputation is separate from useful model work; omitted
+operation families and the counting convention stay explicit.
+
+The integration must reuse the existing profiler cadence and worker, not create
+a polling-triggered profiler. A local deployment may select step 50 then each
+30,000 steps. A one-off installation check is explicitly tagged and does not
+change the recurring cadence or claim to reconstruct an earlier step.
+
+`confidence_interval` concerns local work/time variability, conditional on
+local stationarity. The current moving-block bootstrap uses 2,000 replicates,
+blocks of 5–10 updates and at least 50 reference updates. A greater-than-10%
+rate change between half-windows withholds the interval. These are explicit
+engineering defaults, not a universal guarantee of statistical coverage.
+Intervals exclude systematic counting/coverage and hardware-ceiling uncertainty.
+The minimum/maximum observed step rates are descriptive ranges, never confidence
+intervals. A shorter early window still has a dated observed ratio, with no
+invented interval.
+
+For distributed data parallelism, the adapter must provide unique rank-local
+work from every allocated rank for the same run/config/update, and one common
+coordinator update duration including collective waiting. Sum work once and
+use that one duration; do not sum rank durations, average rank percentages,
+or combine independent training runs. `reduce_data_parallel_step` validates
+this contract. Tensor/pipeline-parallel work ownership needs a specific adapter;
+the utility does not infer it. Local single-GPU validation is not a claim of
+validation on a large distributed cluster.

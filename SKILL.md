@@ -44,7 +44,10 @@ adapters. Heavy profiling and training mutation remain within the user's scope.
 For MFU, use matched useful FLOPs and elapsed time over the same updates, plus
 the assigned GPU count and precision/sparsity-matched peak. State approximations
 and excluded operations. Prefer per-update counts for variable workloads;
-configured estimates or bounds remain visibly labelled. Recompute the ratio
+configured estimates or bounds remain visibly labelled. When periodic MFU is requested,
+attach it to the existing profiling cadence and display a dated capture; do not
+extrapolate it into a live percentage or launch a separate profiling scheduler.
+Profile overhead must stay out of the timing reference. Recompute the ratio
 from totals; never substitute utilization/SOL or invent missing token counts.
 
 Keep private deployment configuration, local paths, logs, patient data and
