@@ -48,7 +48,7 @@ not generic defaults.
    rollback. Change only the dashboard service when the requested work includes
    activation. Training processes, schedulers, checkpoint paths and scientific
    configs stay outside a dashboard migration.
-5. Install the root skill from this maintained checkout. Turn an older skill
+5. Install the root skill from the validated deployed checkout. Turn an older skill
    name into a small compatibility redirect once its method and helpers are
    represented here. Preserve its history; do not continue editing two methods.
 6. Verify the original dashboard address, API consumers and run progress after
@@ -68,3 +68,25 @@ PyTorch already installed for the optional CPU model/optimizer/RNG parity test.
 Validate the root skill frontmatter and verify local Markdown links. Compare
 the baseline file inventory to ensure no existing file disappeared. Exercise
 the real read-only producer-to-API-to-UI path separately from synthetic tests.
+
+## Deployment and development
+
+Keep the service and installed skill on an explicit validated revision. Use a
+separate checkout or Git worktree to prepare public updates and project-specific
+extensions. Both share the same package and upstream history; deployment does
+not need its own implementation or a continuously diverging branch.
+
+Keep private configuration and adapters in ignored local storage. A Git worktree
+does not copy ignored files, so reference the existing configuration deliberately
+when validating a candidate; do not assume its absence means there are no runs.
+Record the deployed revision, service command, configuration location and prior
+revision in ignored `local/DEPLOYMENT.md` so the next agent can update or roll
+back the correct installation.
+
+Before promotion, test the candidate and check compatibility with actual mapped
+logs, captures and API consumers. An authorized update changes the deployed
+revision deliberately, without following arbitrary development edits or pulls.
+Runtime/configuration changes require the appropriate dashboard restart and live
+verification; documentation-only changes with byte-identical runtime code do
+not require restarting training or the dashboard. Preserve the existing access
+address, private settings, history and project-owned profiling workers.

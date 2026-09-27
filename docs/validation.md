@@ -1,4 +1,29 @@
-# Local verification — 27 September 2026
+# Validation records
+
+## Agent adaptation update — 27 September 2026
+
+- **70 tests passed**, including the CPU PyTorch model/optimizer/RNG/loss parity
+  test, using Python 3.12 and an existing PyTorch 2.6.0 environment with CUDA
+  hidden. No package installation, GPU training or heavy profiling was needed.
+- Skill frontmatter validation, relative Markdown links and diff formatting
+  passed. A separate review checked the documented extension points against the
+  actual collector, runtime-association and MFU implementations.
+- **Independent agent integration passed:** an agent without the development
+  conversation used the skill to connect two synthetic archived projects with
+  JSONL and CSV logs. It produced a configuration, CSV adapter and local launcher
+  reusing the supplied dashboard. Four focused checks exercised the actual HTTP
+  API, canonical rank selection, distinct run identities, millisecond conversion,
+  missing values, source timestamps, paused state and server cleanup. The expected
+  API values were independently checked against the raw fixtures.
+- These fixtures and generated adapters remain local test artifacts. No public
+  demonstration is required. HTML delivery was checked, not browser rendering;
+  real remote transport, distributed profiling and throughput improvements were
+  not qualified by this archive-only exercise.
+- Runtime code and dashboard HTML are unchanged from `d2e73dc`; this update
+  changes the agent instructions and integration documentation. Publication
+  also includes the previously local periodic MFU changes in that revision.
+
+## First public release — 27 September 2026
 
 Verification performed for the first public release. Test fixtures are not
 published performance measurements.

@@ -1,4 +1,4 @@
 interface:
   display_name: "ML Training Monitor"
-  short_description: "Unified training dashboard, MFU and performance diagnosis"
-  default_prompt: "Use $ml-training-monitor to inspect my training and explain progress, MFU and the measured performance limits."
+  short_description: "Adapt monitoring and profiling to your training infrastructure"
+  default_prompt: "Use $ml-training-monitor to connect monitoring to my training infrastructure, investigate bottlenecks and validate optimizations."

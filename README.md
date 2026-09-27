@@ -1,18 +1,39 @@
 # ML Training Monitor
 
-Monitor a training run while it is running: progress, loss, gradients, device
-activity, time spent preparing inputs, checkpoint/evaluation cost, and optional
-CPU/GPU performance profiles.
+Give your coding agent the tools to monitor, profile and optimize your training
+on your own infrastructure. The agent connects your existing logs, adapts the
+collectors and profiling workflow to your machines and GPUs, investigates
+bottlenecks, and checks the effect of its changes.
 
-Extracted from a working research dashboard, with training-specific paths and
-hooks supplied through configuration and an explicit training-loop interface.
-The core is local monitoring; optional decision support lets an agent prepare
-concrete interventions for the user's review.
+The package includes the dashboard and collectors: progress, loss, gradients,
+device activity, input preparation, checkpoint/evaluation costs, and optional
+CPU/GPU profiles. Training-specific paths and hooks are supplied through
+configuration and an explicit training-loop interface. Optional decision support
+lets an agent prepare concrete interventions for the user's review.
 
 [SKILL.md](SKILL.md) is the unified agent entry for this dashboard, runtime
 inspection, MFU and performance engineering. All existing collection and
 optional review workflows remain available. See [unification](docs/unification.md)
 for the integration map and migration procedure.
+
+## Give it to your agent
+
+Point your agent at [SKILL.md](SKILL.md) in this checkout. For example:
+
+> Use this skill to connect the dashboard to my training environment. Discover
+> my machines, available GPUs, launchers and existing logs, implement the
+> necessary adapters, and verify the displayed measurements. Then investigate
+> bottlenecks and validate optimizations within the scope we agree on.
+
+[Environment adaptation](docs/environment-adaptation.md) identifies the reusable
+interfaces and the work needed for local, multi-GPU and cluster deployments.
+The agent performs that integration; a list of visible GPUs alone does not
+establish working distributed monitoring. The optimization method includes
+profiling again after a change to identify the remaining cost.
+
+No demonstration workload is required. Connect real training logs directly.
+Any synthetic example or test fixture is illustrative and is not evidence of
+training speed or a successful deployment on another cluster.
 
 ## What you can use
 
@@ -175,9 +196,12 @@ python3 -m unittest discover -s tests -v
 
 Tests cover collection, interval accounting, diagnostic histories, optional
 capture scheduling, durable-checkpoint requests, and worker cleanup/deduplication.
-Fixtures are synthetic tests, not performance measurements. This is a
-single-host monitor; distributed per-rank traces need a project-specific
-integration. NVIDIA is the GPU collector implemented here. The web server has
+Fixtures are synthetic tests, not performance measurements. The supplied
+collectors observe a single host, including multiple local GPUs. Agents adapt
+multi-host collection and distributed per-rank profiling to the user's actual
+environment; see [environment adaptation](docs/environment-adaptation.md) for
+implementation boundaries and verification. NVIDIA is the GPU collector
+implemented here. The web server has
 no authentication: keep loopback or use your established authenticated tunnel.
 
 Apache-2.0. See [LICENSE](LICENSE). This project is separate from the
@@ -188,7 +212,9 @@ needed. Existing skill-name callers can use a compatibility redirect during
 migration; preserve the older repository as provenance rather than maintaining
 two independent methods.
 
-To make a checkout discoverable as a Codex skill, link the checkout directory
-into `~/.codex/skills/ml-training-monitor`. Use one checkout as the maintained
-source; do not copy a second dashboard under the skills directory. The Python
-package and the skill entry belong to that same checkout.
+To make an installed checkout discoverable as a Codex skill, link its directory
+into `~/.codex/skills/ml-training-monitor`. Keep that installation at a validated
+revision; prepare updates in a separate development checkout or Git worktree.
+The Python package and skill remain one maintained codebase. This separates
+deployment from development without maintaining a second dashboard or a private
+fork of the method. See [deployment updates](docs/unification.md#deployment-and-development).

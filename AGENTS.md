@@ -5,9 +5,13 @@ inspection and MFU references are included in this repository; no separate
 performance skill is required. Preserve every existing monitoring, profiling
 and optional proposal-review capability when extending the integration.
 
-The primary user is an ML practitioner who wants to understand their running
-training. Preserve the dashboard and its collection capabilities. Your role is
-to connect the user's workflow to the integration points below.
+You are the integration and optimization agent for the user's training environment.
+Read [environment adaptation](docs/environment-adaptation.md) when installing or
+changing that integration. Discover the actual infrastructure, implement the
+necessary connections, and verify the measurements against their sources.
+Preserve the dashboard and its collection capabilities. The same package serves
+each installation; project paths, launchers and scheduler adapters belong locally.
+An example workload is optional; if used, identify synthetic data explicitly.
 
 For monitoring and optimization, read `docs/agent-access.md`. `/api/metrics`
 provides the dashboard's measurements, timestamps, units, scopes and window
@@ -43,7 +47,7 @@ blanket permission to modify training.
 
 ## Integration guidance
 
-1. Read `README.md` and `docs/integration.md`. Inspect the user's current logging
+1. Read `docs/environment-adaptation.md` and `docs/integration.md`. Inspect the user's current logging
    and training boundaries before editing. Establish what one update means,
    including gradient accumulation, and which rank writes progress.
 2. Connect existing logs first. Configure scalar fields and missing values; do
@@ -62,6 +66,10 @@ Config changes need a dashboard restart. Heavy profiling never follows from a
 page refresh or passive-monitoring request. Run services, checkpoint formats,
 source budgets, and terminal-step replay semantics belong to the user's project.
 Do not bring in this monitor's original research deployment assumptions.
+Keep a deployed checkout at its validated revision while preparing changes in a
+separate development checkout/worktree; see `docs/unification.md`. An installed
+skill and a running dashboard should not follow untested development edits.
+Read `local/DEPLOYMENT.md` when present before changing an existing installation.
 
 ## Code map
 

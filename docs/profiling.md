@@ -1,6 +1,11 @@
 # Optional profiling, with the collection workflow included
 
 Light monitoring is the default. There are two independent opt-ins.
+The agent adapts these mechanisms to the user's training, allocation and
+checkpoint lifecycle using [environment adaptation](environment-adaptation.md).
+For an optimization request, use the existing
+[performance loop](performance-engineering.md); configuring captures alone does
+not complete an investigation or prove a throughput gain.
 
 ## Framework captures within training
 
@@ -28,6 +33,14 @@ PyTorch's Kineto event access varies by version. The current implementation
 uses `profile.profiler.kineto_results.events()`; failure disables detailed
 captures for that instance and is reported. This path needs qualification in
 the user's installed framework/GPU environment before a long run.
+
+For distributed training, select capture ranks/devices and use separate output
+directories for independent writers. Preserve the logical run, allocation and
+global update in local integration metadata. A selected-rank capture explains
+that rank/device; collective waits or stragglers may require coordinated traces
+from other ranks. The agent should adapt the existing launcher to collect those
+traces, establish their clock relationship and report the coverage. Keep the
+global unprofiled throughput reference separate from concurrent rank timings.
 
 ## Checkpoint replay and Nsight
 
@@ -107,6 +120,14 @@ The worker fixes `CUDA_VISIBLE_DEVICES` to the leased GPU UUID and exports a
 bounded set of counters. It does not acquire administrator rights or change
 driver settings. Counter access remains an environment requirement. Review raw
 reports locally; they may contain command/path metadata.
+
+On a cluster, invoke this worker through the site's existing allocation on the
+host holding the selected GPU and readable checkpoint. `CapturePlan` names one
+GPU; its replay cannot transparently reproduce a multi-device training topology.
+A distributed investigation may need a coordinated framework capture or an
+extension to the replay orchestration. The agent implements that project-specific
+path and validates its scope rather than presenting a one-device replay as a
+measurement of the complete distributed step.
 
 Use a retained checkpoint path that will not be overwritten while the request
 is pending. Size/mtime checks do not validate a model format or prove the

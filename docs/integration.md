@@ -1,5 +1,10 @@
 # Training integration
 
+For coding agents connecting a new project, start with
+[environment adaptation](environment-adaptation.md). It covers discovery,
+distributed measurements and extension points for multiple hosts or clusters.
+Connect the user's existing training; a demonstration run is not required.
+
 ## Dashboard configuration
 
 `monitor.local.json` is deployment configuration, not training configuration.
@@ -164,3 +169,8 @@ reported compute process on the specified GPU receives a verified association.
 Missing/ambiguous/mismatched ownership stays unidentified. This mapping reads
 JSON only; it neither imports a scheduler adapter nor controls a process.
 Confirmed PIDs also distinguish current-process from historical captures.
+This mapping represents one GPU/PID per run, not a multi-rank allocation. Logs
+from remote or distributed jobs can be displayed, but the shipped hardware
+collectors still measure the dashboard host. Follow the adaptation guide when
+adding remote collection or verified distributed ownership; those capabilities
+are not enabled by registering additional run directories.

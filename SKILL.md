@@ -1,21 +1,30 @@
 ---
 name: ml-training-monitor
-description: Track ML training, connect the local dashboard, explain progress and resource use, calculate MFU, profile bottlenecks and validate performance improvements. Use this unified entry for monitoring and performance work; preserve the user's scientific recipe and existing training control.
+description: Install and adapt training monitoring to the user's machines, GPUs and cluster workflows; track progress, calculate MFU, profile bottlenecks and validate optimizations. Use for agent-led integration and performance work while preserving the training recipe and existing job control.
 ---
 
 # ML Training Monitor
 
 One entry for the dashboard, training telemetry, runtime inspection, MFU,
-profiling and evidence-based optimization. The implementation is in `mlmonitor/`;
-use it rather than creating another monitoring stack. Read [AGENTS.md](AGENTS.md)
-for integration points and the existing optional decision-support boundaries.
+profiling and evidence-based optimization. This skill equips a coding agent to
+install and adapt the supplied tools to its user's actual training environment,
+then investigate and improve training within the requested scope. The
+implementation is in `mlmonitor/`; preserve its panels and collection capabilities
+as you connect them. Read [AGENTS.md](AGENTS.md) for integration points.
+
+For a new installation or infrastructure change, start with
+[environment adaptation](docs/environment-adaptation.md). Discover the available
+machines, allocated GPUs, launchers and existing logs; implement the necessary
+local mappings or adapters and verify their real output. Multi-host or cluster
+integration is work for the agent to perform and qualify: the supplied collectors
+start on one host. A demonstration run is optional, not an installation prerequisite.
 
 ## Choose the work the user asked for
 
 | Request | Start here | Result |
 | --- | --- | --- |
 | Current progress, ETA, hardware or training status | [Agent access](docs/agent-access.md), [runtime inspection](docs/runtime-inspection.md) | Timestamped answer from the actual run and measurement window |
-| Connect or migrate a dashboard | [Integration](docs/integration.md), [unification](docs/unification.md) | Configured existing-log connection; preserve panels and training behavior |
+| Install, adapt to GPUs/clusters, or migrate a dashboard | [Environment adaptation](docs/environment-adaptation.md), [integration](docs/integration.md), [unification](docs/unification.md) | Working connection to the user's environment, with validated scope and preserved panels |
 | Useful GPU compute throughput / MFU | [MFU](docs/mfu.md) | Shared `runs[].mfu` result for the dashboard and agents, with its evidence and limits |
 | Slow training or an optimization request | [Performance engineering](docs/performance-engineering.md) | Bottleneck evidence, bounded intervention and appropriate equivalence checks |
 | Timing or attribution ambiguity | [Measurement](docs/measurement.md) | Correct boundaries, overlap accounting and launch parity |
