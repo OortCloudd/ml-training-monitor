@@ -4,9 +4,10 @@ Monitor a training run while it is running: progress, loss, gradients, device
 activity, time spent preparing inputs, checkpoint/evaluation cost, and optional
 CPU/GPU performance profiles.
 
-This local version preserves the working dashboard's monitoring panels and
-collectors. Training-specific paths and hooks are supplied through configuration
-and an explicit training-loop interface. Nothing has been published.
+Extracted from a working research dashboard, with training-specific paths and
+hooks supplied through configuration and an explicit training-loop interface.
+The core is local monitoring; optional decision support lets an agent prepare
+concrete interventions for the user's review.
 
 ## What you can use
 
@@ -20,6 +21,7 @@ and an explicit training-loop interface. Nothing has been published.
 | Diagnostic history, a selectable observation, and model details | Your logged diagnostic scalars and model metadata |
 | Detailed CPU/GPU interval breakdown and capture history | Optional scheduled PyTorch capture |
 | Nsight kernel counters and measured rooflines | Existing reports, or the optional checkpoint replay worker |
+| Measured investigation leads and reviewed agent proposals | Explicit opt-in to decision support; user approval for each intervention |
 
 Ordinary monitoring requires no training pause, checkpoint reload, CUDA
 synchronization, PyTorch import by the server, or administrator access. The
@@ -31,6 +33,8 @@ but may overlap GPU execution and must not be added as exclusive percentages.
 Python 3.10+; the dashboard itself uses the standard library. From this folder:
 
 ```bash
+git clone https://github.com/OortCloudd/ml-training-monitor.git
+cd ml-training-monitor
 cp monitor.example.json monitor.local.json
 python3 -m mlmonitor --config monitor.local.json --check
 python3 -m mlmonitor --config monitor.local.json
@@ -126,6 +130,23 @@ Both are disabled by default. Leaving them disabled preserves all normal
 monitoring, host phase timing, diagnostics, and outside-step timing. There is
 no global 30k policy and no imported assumption about your scheduler.
 
+## Optional decision support
+
+Enable this only when the user wants it. The built-in engine suggests a few
+investigation leads from recorded costs. An agent can turn a lead—or its own
+code analysis—into a concrete proposal with the change, evidence, expected
+effect, validation, risks and rollback. The user approves or rejects that exact
+scope in the dashboard. Approval does not execute a training command.
+
+```json
+"decision_support": {"enabled": true, "directory": "local/proposals"}
+```
+
+The [decision-support guide](docs/decision-support.md) explains submission,
+review, revocation and agent-reported outcomes. Ordinary monitoring works with
+this mode disabled. The suggestions are transparent heuristics, not a promise
+of a speedup or an automatic causal diagnosis. No LLM service is required.
+
 ## For coding agents
 
 [AGENTS.md](AGENTS.md) maps each integration point to its configuration or hook.
@@ -136,8 +157,9 @@ the data and instrumentation.
 
 Real-time metric quality is explicit: source/units, observation window, valid
 sample counts, collection gaps, freshness and timestamp provenance. Dated
-profiles stay separate from live readings. No decision engine or automatic
-acceptance procedure is built into the dashboard.
+profiles stay separate from live readings. Optional proposal review leaves the
+user in control of what is authorized; agents remain responsible for examining
+the actual code and reporting measured results.
 
 ## Verification and limits
 
@@ -152,4 +174,6 @@ single-host monitor; distributed per-rank traces need a project-specific
 integration. NVIDIA is the GPU collector implemented here. The web server has
 no authentication: keep loopback or use your established authenticated tunnel.
 
-The local production dashboard and training code are separate from this tree.
+Apache-2.0. See [LICENSE](LICENSE). This project is separate from the
+[ML Performance Engineering skill](https://github.com/OortCloudd/ml-performance-engineering),
+which provides broader investigation guidance.

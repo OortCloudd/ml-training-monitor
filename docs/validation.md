@@ -1,8 +1,9 @@
 # Local verification — 27 September 2026
 
-This version is local and has no GitHub remote.
+Verification performed for the first public release. Test fixtures are not
+published performance measurements.
 
-- **36 core tests passed** with the Python standard-library environment. The
+- **48 core tests passed** with the Python standard-library environment. The
   optional PyTorch test was skipped there and run separately.
 - **CPU PyTorch integration passed:** five updates with and without light hooks
   produced exactly equal model weights, optimizer state, RNG state and losses.
@@ -20,6 +21,16 @@ This version is local and has no GitHub remote.
   boundaries, profiling flags, source timestamp versus file-time freshness,
   collection/publication timing, and configured sampling cadence. Missing
   values remain missing; the API exposes live units and source meanings.
+- **Optional decision support checked:** disabled-by-default behavior, scoped
+  measurement leads, immutable proposal content, matching configuration context,
+  user approval/rejection/revocation, and agent-reported outcomes. Review writes
+  reject a missing/incorrect page token, a foreign origin, and changed proposal
+  content. These checks are not an authentication system against a malicious
+  process with local filesystem access.
+- **Browser review flow passed:** submit through the agent CLI, inspect the
+  proposal, preserve a typed comment across refresh, approve and revoke. Desktop
+  and mobile checks found no page errors or horizontal overflow. No training
+  command was executed by the review flow.
 - **Package build passed:** the wheel contains the dashboard HTML, recorder,
   worker and console entry points; local data and test artifacts are excluded.
 - **Original dashboard source unchanged:** the copied source files retain their

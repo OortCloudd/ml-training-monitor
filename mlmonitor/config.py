@@ -19,7 +19,7 @@ def load_config(path):
     def invalid(value):
         raise ValueError('non-finite config value: ' + value)
     raw = json.loads(path.read_text(), parse_constant=invalid)
-    if not isinstance(raw, dict) or set(raw) - {'title', 'interval', 'gpu_indices', 'gpu_enabled', 'disks', 'runs'}:
+    if not isinstance(raw, dict) or set(raw) - {'title', 'interval', 'gpu_indices', 'gpu_enabled', 'disks', 'runs', 'decision_support'}:
         raise ValueError('unknown dashboard settings')
     result = {'title': raw.get('title', 'ML Training Monitor'), 'interval': raw.get('interval', 2),
               'gpu_enabled': raw.get('gpu_enabled', True), 'gpu_indices': raw.get('gpu_indices'), 'runs': []}
@@ -37,6 +37,11 @@ def load_config(path):
             raise ValueError('paths must be nonempty strings')
         p = Path(value).expanduser()
         return (root / p).resolve()
+    support=raw.get('decision_support', {})
+    if not isinstance(support,dict) or set(support)-{'enabled','directory'} or type(support.get('enabled',False)) is not bool:
+        raise ValueError('decision_support accepts enabled (boolean) and directory')
+    result['decision_support']={'enabled':support.get('enabled',False),
+                                'directory':resolve(support.get('directory','local/proposals'))}
     result['disks'] = []
     for disk in raw.get('disks', []):
         if not isinstance(disk, dict) or set(disk) != {'label', 'path'} or not isinstance(disk['label'], str):

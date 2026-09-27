@@ -6,12 +6,15 @@ build-backend = "setuptools.build_meta"
 name = "ml-training-monitor"
 version = "0.1.0"
 description = "Training monitoring with optional integrated performance collection"
+readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.10"
 dependencies = []
 
 [project.scripts]
 ml-training-monitor = "mlmonitor.server:main"
 ml-monitor-profiles = "mlmonitor.worker:main"
+ml-monitor-proposals = "mlmonitor.proposals:main"
 
 [tool.setuptools]
 packages = ["mlmonitor"]

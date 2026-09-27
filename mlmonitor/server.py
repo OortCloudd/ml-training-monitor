@@ -1,11 +1,14 @@
-"""Read-only dashboard retaining the existing monitoring panels and collectors."""
+"""Training monitoring with opt-in proposal review; no training-command endpoint."""
 import argparse
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import hmac
 from pathlib import Path
+import secrets
 import threading
 import time
+from urllib.parse import urlsplit
 
 from .config import load_config
 from .dmon_monitor import DmonMonitor
@@ -15,6 +18,7 @@ from .reader import RunReader
 from .storage import read, finite
 from .step_attribution import load_capture
 from .recorder import next_capture
+from .advice import ProposalStore, opportunities
 
 BASE = Path(__file__).resolve().parent
 
@@ -28,6 +32,9 @@ class Sampler:
         self.dmon = DmonMonitor(settings['gpu_indices'], settings['gpu_enabled'])
         self.lock, self.stop = threading.Lock(), threading.Event()
         self.snapshot = {'loading': True}
+        support=settings.get('decision_support', {'enabled':False})
+        self.proposals=ProposalStore(support['directory']) if support['enabled'] else None
+        self.review_token=secrets.token_urlsafe(32) if self.proposals else None
 
     def collect(self):
         now = time.time()
@@ -85,7 +92,8 @@ class Sampler:
                            'history':list(self.history),'interval':self.settings['interval'],
                            'collection':{'started_at':now,'hardware_read_finished_at':hardware_finished,
                                          'published_at':published_at,'duration_seconds':time.monotonic()-started,
-                                         'requested_interval_seconds':self.settings['interval']}}
+                                         'requested_interval_seconds':self.settings['interval']},
+                           'decision_support':{'enabled':self.proposals is not None}}
 
     def loop(self):
         while not self.stop.is_set():
@@ -117,12 +125,30 @@ def validated_auxiliary(path, sha, field):
 
 def handler(sampler):
     class Handler(BaseHTTPRequestHandler):
+        def send_json(self, value, status=200):
+            body=json.dumps(value,allow_nan=False).encode()
+            self.send_response(status)
+            self.send_header('Content-Type','application/json')
+            self.send_header('Content-Length',str(len(body)))
+            self.send_header('Cache-Control','no-store')
+            self.send_header('X-Content-Type-Options','nosniff')
+            self.end_headers()
+            try:self.wfile.write(body)
+            except (BrokenPipeError,ConnectionResetError):pass
+
         def do_GET(self):
             path=self.path.split('?',1)[0]
-            if path=='/':body=(BASE/'index.html').read_bytes();kind='text/html; charset=utf-8'
+            if path=='/':
+                text=(BASE/'index.html').read_text().replace('__MLMONITOR_REVIEW_TOKEN__',json.dumps(sampler.review_token))
+                body=text.encode();kind='text/html; charset=utf-8'
             elif path=='/api/metrics':
                 with sampler.lock:body=json.dumps(sampler.snapshot,allow_nan=False).encode()
                 kind='application/json'
+            elif path=='/api/decisions':
+                if sampler.proposals is None:self.send_json({'enabled':False});return
+                with sampler.lock:snapshot=sampler.snapshot
+                self.send_json({'enabled':True,'opportunities':opportunities(snapshot),**sampler.proposals.listing(snapshot)})
+                return
             elif path=='/api/dmon/raw':body=sampler.dmon.snapshot()['raw'].encode();kind='text/plain; charset=utf-8'
             elif path=='/favicon.ico':self.send_response(204);self.end_headers();return
             else:self.send_error(404);return
@@ -133,6 +159,39 @@ def handler(sampler):
             self.end_headers()
             try:self.wfile.write(body)
             except (BrokenPipeError,ConnectionResetError):pass
+
+        def do_POST(self):
+            # The only write route records a human review. No command execution.
+            path=self.path.split('?',1)[0]
+            if path!='/api/proposals/review':self.send_json({'error':'Not found'},404);return
+            if sampler.proposals is None:self.send_json({'error':'Decision support is disabled'},403);return
+            port=self.server.server_address[1]
+            bind=self.server.server_address[0]
+            hosts={bind} if bind not in ('0.0.0.0','::') else set()
+            hosts.update(('127.0.0.1','localhost','::1'))
+            try:
+                origin=urlsplit(self.headers.get('Origin',''))
+                host=urlsplit('http://'+self.headers.get('Host',''))
+                same_origin=(origin.scheme=='http' and origin.hostname in hosts and origin.port==port and
+                             host.hostname==origin.hostname and host.port==port)
+            except ValueError:same_origin=False
+            token=self.headers.get('X-Review-Token','')
+            if not same_origin or not hmac.compare_digest(token.encode('utf-8'),sampler.review_token.encode('ascii')):
+                self.send_json({'error':'Review requires the dashboard page on the configured host; reload it if the server restarted.'},403);return
+            try:
+                length=int(self.headers.get('Content-Length','0'))
+                if not 0<length<=16000 or self.headers.get('Content-Type','').split(';')[0]!='application/json':
+                    raise ValueError('Review must be a small JSON request')
+                payload=json.loads(self.rfile.read(length))
+                if not isinstance(payload,dict) or set(payload)-{'id','content_sha256','decision','comment'}:
+                    raise ValueError('Invalid review fields')
+                with sampler.lock:snapshot=sampler.snapshot
+                result=sampler.proposals.review(payload.get('id'),payload.get('content_sha256'),
+                                               payload.get('decision'),payload.get('comment',''),snapshot)
+            except (ValueError,TypeError,KeyError) as exc:
+                self.send_json({'error':str(exc)},409);return
+            self.send_json(result)
+
         def log_message(self,*args):pass
     return Handler
 

@@ -2,14 +2,14 @@
 
 The dashboard is a monitoring instrument. Use the measurements to understand
 training, investigate code and choose optimizations. The agent owns the
-reasoning, priorities and experiments; there is no decision engine or imposed
+reasoning, priorities and experiments. Ordinary monitoring does not impose an
 optimization procedure.
 
-An optional decision-support layer may be added with explicit user opt-in. It
-would present a concrete intervention, supporting measurements, expected effect,
-tradeoffs and recovery plan. The user retains the final choice and execution
-authorization for that intervention; enabling the mode is not blanket approval.
-This optional layer is not implemented in the current version.
+[Optional decision support](decision-support.md) adds measured leads and
+concrete proposals for user review. It requires explicit opt-in; the user
+retains the final decision for each intervention. Agents submit proposals and
+read approval records, but must not approve themselves. The dashboard never
+executes training commands.
 
 ## Read the same data as the dashboard
 

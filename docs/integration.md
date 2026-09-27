@@ -8,7 +8,8 @@ The server reads it once at startup. Paths resolve relative to that file.
 Top-level settings: `title`, `interval` (1–60 seconds, default 2),
 `gpu_enabled` (default true), `gpu_indices` (null discovers all; list selects
 physical `nvidia-smi` indices), `disks` (objects with `label` and `path`), and
-`runs` (explicitly registered runs). No automatic filesystem experiment scan.
+`runs` (explicitly registered runs). Optional `decision_support` contains
+`enabled` (default false) and `directory` for local proposal records. No automatic filesystem experiment scan.
 
 A run needs `id` and `directory`. Optional `name`, `target_updates`, `step_unit`,
 `details`, `config_sha256`, `capture_every`, and `capture_steps` describe it.
@@ -131,9 +132,14 @@ light monitoring continues.
 
 The server listens on loopback by default and needs no job-control privileges.
 Use your SSH tunnel or authenticated network access; this server supplies no
-application authentication/TLS. It has only read-only routes: `/`,
+application authentication/TLS. Monitoring routes are read-only: `/`,
 `/api/metrics`, and `/api/dmon/raw`. The last route contains hardware samples,
 not training log records.
+
+Optional decision support adds `GET /api/decisions` and a guarded
+`POST /api/proposals/review` for user decisions. This records consent only;
+there is no training-command endpoint. See `decision-support.md` for its
+single-user access assumptions and agent responsibilities.
 
 GPU activity remains board-level activity; it is not automatically assigned to
 one training job. Multiple jobs, missing hardware and unsupported counters

@@ -7,13 +7,15 @@ to connect the user's workflow to the integration points below.
 For monitoring and optimization, read `docs/agent-access.md`. `/api/metrics`
 provides the dashboard's measurements, timestamps, units, scopes and window
 quality. Use your judgment to inspect bottlenecks and optimize the actual
-training code. No diagnosis classifier, experiment gate or fixed decision
-procedure is imposed by this project.
+training code. Ordinary monitoring imposes no optimization procedure.
 
-If optional decision support is added, require explicit user opt-in and retain
-the user's final decision on each concrete proposed intervention. Distinguish
-proposal preparation from authorization to execute it. The current version
-provides monitoring and data access; this optional layer is not implemented.
+Optional decision support requires explicit user opt-in. Read
+`docs/decision-support.md` before using it. Submit concrete proposals through
+`mlmonitor.proposals`; the user reviews them in the dashboard. Never approve
+your own proposal or call the human review endpoint. Immediately before
+execution, check the current approval, content digest, configuration context
+and actual target revision. Stay within that scope. Enabling the mode is not
+blanket permission to modify training.
 
 ## Where each project-specific decision belongs
 
@@ -64,7 +66,9 @@ Do not bring in this monitor's original research deployment assumptions.
 - `mlmonitor/import_ncu.py`, `gpu_efficiency.py`: raw metric import/validation.
 - `mlmonitor/dmon_monitor.py`, `hardware.py`: live hardware collectors.
 - `mlmonitor/server.py`, `index.html`: the existing dashboard panels.
+- `mlmonitor/advice.py`, `proposals.py`: optional measured leads, proposal
+  records and the agent interface; human review remains separate.
 
 Run `python3 -m unittest discover -s tests -v`. Keep `local/`, runtime files,
-traces, credentials, and private deployment settings out of commits. No
-publication is authorized by these instructions.
+traces, credentials, and private deployment settings out of commits. Publishing
+requires the user's explicit request; installation alone does not authorize it.
