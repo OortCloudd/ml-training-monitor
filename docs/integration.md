@@ -107,6 +107,47 @@ producer assessment and does not control training. A numeric `reference` draws
 a guide where it falls within the observed chart range. No universal threshold
 or stop policy is imposed.
 
+When existing diagnostic events include embedding moments, an optional run
+mapping derives three scalars as each new diagnostic event is read:
+
+```json
+"embedding_moments": {
+  "ddof": 1,
+  "per_dimension_std": "summary.per_dimension_std",
+  "n_samples": "summary.n_samples",
+  "n_dimensions": "summary.n_dimensions",
+  "norm_mean": "summary.norm_mean",
+  "norm_std": "summary.norm_std"
+},
+"diagnostics": [
+  {"key": "total_variance", "label": "Total feature variance"},
+  {"key": "centered_feature_rms", "label": "Centered RMS per dimension"},
+  {"key": "centered_energy_fraction", "label": "Centered energy fraction", "unit": "fraction"}
+]
+```
+
+All five mappings and `ddof: 1` are required: both the per-dimension standard
+deviations and the standard deviation of the embedding norms must use the
+sample convention with denominator `N-1`, on the same `N` embeddings. The
+monitor does not infer that convention, normalize features, or run a model.
+`n_samples` and `n_dimensions` must be positive integer counts, with `N >= 2`
+and exactly that many per-dimension deviations. For `V = sum(std_j²)` and
+`c = (N-1)/N`, the outputs are `V`, `sqrt(V / D)` and
+`c*V / (norm_mean² + c*norm_std²)`. The latter separates centered variation
+from energy in a shared mean vector and is invariant to a uniform feature
+rescaling; raw variance and RMS retain the feature scale.
+
+Missing, invalid and non-finite inputs produce null; unavailable norm moments
+leave the first two outputs available. Zero total energy leaves the fraction
+null, with no epsilon or clipping. Constant nonzero embeddings have zero
+variance and zero centered energy fraction. The three derived values override
+incoming values at those keys only when the mapping is enabled. Arrays remain
+internal to the reader; only derived scalars enter the API. Repeated polls
+without new accepted events do not recalculate them. Source logs, native
+`healthy` assessments and alert thresholds remain unchanged. There is no
+additional scheduler, sidecar, framework import, device synchronization or
+training hook. Omit `embedding_moments` to retain the original scalar reader.
+
 `details` supplies the architecture/training table: model, optimizer, precision,
 batch/accumulation, data geometry, and whatever facts are useful for this run.
 Only explicitly supplied scalars are shown. They are labelled configured

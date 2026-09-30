@@ -8,6 +8,7 @@ import statistics
 from .storage import finite, field, read
 from .mfu import summarize as summarize_mfu
 from .mfu_capture import summarize_capture
+from .embedding_moments import derive as derive_embedding_moments, SOURCE_KEYS as EMBEDDING_MOMENT_KEYS
 
 
 class JsonLines:
@@ -82,8 +83,12 @@ class RunReader:
             if step is None or step<0:continue
             healthy=fields.pop('healthy')
             if self.health and step<=self.health[-1]['step']:continue
+            derived={}
+            moments=self.spec.get('embedding_moments')
+            if moments:
+                derived=derive_embedding_moments({k:field(raw,moments[k]) for k in EMBEDDING_MOMENT_KEYS})
             self.health.append({'step':step,'healthy':healthy if type(healthy) is bool else None,
-                                **{k:finite(v) for k,v in fields.items()}})
+                                **{k:finite(v) for k,v in fields.items()},**derived})
         state=read(self.spec['files']['state']);binding=read(self.spec['files']['bindings'])
         latest=self.rows[-1] if self.rows else {}
         try:file_time=self.spec['files']['telemetry'].stat().st_mtime

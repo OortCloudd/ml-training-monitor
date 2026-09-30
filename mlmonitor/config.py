@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import re
 from .mfu import validate_contract
+from .embedding_moments import SOURCE_KEYS as EMBEDDING_MOMENT_KEYS
 
 FIELDS = {'step': 'update', 'loss': 'loss_components.loss', 'seconds': 'update_seconds',
           'gradient': 'encoder_gradient_norm', 'timestamp': 'timestamp',
@@ -52,7 +53,7 @@ def load_config(path):
     ids = set()
     for r in raw.get('runs', []):
         allowed = {'id', 'name', 'directory', 'files', 'fields', 'target_updates', 'step_unit', 'diagnostics',
-                   'diagnostic_fields', 'details', 'config_sha256', 'capture_every', 'capture_steps', 'mfu', 'runtime'}
+                   'diagnostic_fields', 'embedding_moments', 'details', 'config_sha256', 'capture_every', 'capture_steps', 'mfu', 'runtime'}
         if not isinstance(r, dict) or set(r) - allowed:
             raise ValueError('unknown run settings')
         key = r.get('id')
@@ -85,6 +86,14 @@ def load_config(path):
         df = {'step': 'update', 'healthy': 'healthy', **{d['key']: 'summary.' + d['key'] for d in diagnostics}, **r.get('diagnostic_fields', {})}
         if set(df) - ({'step', 'healthy'} | diagnostic_keys) or any(v is not None and not isinstance(v, str) for v in df.values()):
             raise ValueError('unknown diagnostic mapping')
+        embedding_moments = r.get('embedding_moments')
+        if embedding_moments is not None:
+            if (not isinstance(embedding_moments, dict)
+                or set(embedding_moments) != {'ddof', *EMBEDDING_MOMENT_KEYS}
+                or type(embedding_moments.get('ddof')) is not int or embedding_moments['ddof'] != 1
+                or any(not isinstance(embedding_moments[k], str) or not embedding_moments[k]
+                       or any(not part for part in embedding_moments[k].split('.')) for k in EMBEDDING_MOMENT_KEYS)):
+                raise ValueError('embedding_moments requires ddof=1 and five dot-separated source mappings')
         for k in ('target_updates', 'capture_every'):
             if r.get(k) is not None and (type(r[k]) is not int or r[k] <= 0):
                 raise ValueError(k + ' must be a positive integer')
@@ -115,6 +124,7 @@ def load_config(path):
                 raise ValueError('runtime expected values must be nonempty strings')
         result['runs'].append({**r, 'id': key, 'name': r.get('name', key), 'directory': folder, 'mfu': mfu, 'runtime': runtime,
             'files': {k: resolve(v, folder) if v is not None else None for k, v in {**FILES, **files}.items()},
-            'fields': fields, 'diagnostic_fields': df, 'diagnostics': diagnostics, 'details': details,
+            'fields': fields, 'diagnostic_fields': df, 'embedding_moments': embedding_moments,
+            'diagnostics': diagnostics, 'details': details,
             'step_unit': r.get('step_unit', 'optimizer updates')})
     return result
