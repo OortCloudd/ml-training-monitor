@@ -49,12 +49,16 @@ hyphens. A local identity map can translate a richer site identity into those
 IDs. Keep an allocation/restart history when a distributed job changes ranks or
 devices; never combine a rewound attempt with its predecessor's trajectory.
 
-The existing `runs[].runtime` mapping reads one JSON record with run ID, PID,
-GPU UUID and status. `runtime.assign_runs()` verifies that this PID is the GPU's
-sole compute process. It represents one device per run mapping, not a distributed
-allocation. For DDP or other multi-process layouts, preserve the host hardware
-view and unidentified associations until an extension verifies the complete
-allocation. Copying a scheduler job's name onto every busy GPU is not verification.
+The `runs[].runtime` mapping reads one local scheduler JSON record. Its default
+PID/GPU UUID mapping verifies that the PID is the GPU's sole compute process.
+For a declared local multi-worker allocation, explicitly map both `workers`
+and `coordinator_pid`; see [integration](integration.md). Every declared worker
+must have a unique PID, physical GPU UUID and rank, with sole compute ownership
+on its device. The coordinator must be one of those workers. Any incomplete or
+ambiguous allocation remains unidentified as a whole. This verifies local GPU
+association for one logical run; it does not discover clusters, collect remote
+hardware or automate distributed profiling. Copying a scheduler job's name onto
+every busy GPU is not verification.
 
 Keep one canonical progress stream per logical run. Rank logs must not all append
 the same updates into that stream. Define whether loss, samples/tokens and FLOPs

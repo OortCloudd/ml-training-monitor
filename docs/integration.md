@@ -215,8 +215,39 @@ reported compute process on the specified GPU receives a verified association.
 Missing/ambiguous/mismatched ownership stays unidentified. This mapping reads
 JSON only; it neither imports a scheduler adapter nor controls a process.
 Confirmed PIDs also distinguish current-process from historical captures.
-This mapping represents one GPU/PID per run, not a multi-rank allocation. Logs
-from remote or distributed jobs can be displayed, but the shipped hardware
-collectors still measure the dashboard host. Follow the adaptation guide when
-adding remote collection or verified distributed ownership; those capabilities
-are not enabled by registering additional run directories.
+
+For a local multi-process allocation, opt in to both `workers` and
+`coordinator_pid` source mappings instead of the single PID/GPU identity:
+
+```json
+"runtime": {
+  "path": "allocation.json",
+  "fields": {
+    "run_id": "job.method",
+    "status": "job.status",
+    "workers": "job.workers",
+    "coordinator_pid": "job.writer_pid"
+  }
+}
+```
+
+The mapped array declares at least two workers, each with exactly `pid`,
+`gpu_uuid` and `rank`. PIDs are positive integers, physical GPU UUIDs are nonempty strings,
+and ranks cover `0..N-1`. All three identities must be unique within the
+allocation. The coordinator must be one of the worker PIDs; it identifies the
+canonical writer/capture process, not a launcher outside the worker allocation.
+
+Every declared GPU must be present in the local hardware observation, with its
+declared PID as the sole compute process. Conflicting scheduler claims,
+duplicate identities, missing devices or an invalid coordinator leave the
+whole allocation unidentified. There is no partial assignment or fallback to
+the single-process mapping when worker mode was explicitly configured. A
+verified allocation assigns all its GPUs to the same configured run and uses
+the coordinator PID to assess capture provenance. Keep one canonical progress
+stream for that run; GPU association does not merge rank-local logs or count
+their updates multiple times. The mapping never launches a process or capture.
+
+Existing single PID/GPU mappings retain their behavior. Logs from remote or
+distributed jobs can be displayed, but the shipped hardware collectors still
+measure the dashboard host. This local ownership extension does not add remote
+collection or distributed profiling; adapt those separately when requested.

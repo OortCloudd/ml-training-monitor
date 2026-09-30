@@ -112,8 +112,10 @@ def load_config(path):
                 raise ValueError('runtime accepts path, fields and expected run/status values')
             runtime_fields = {'run_id': 'run_id', 'pid': 'pid', 'gpu_uuid': 'gpu_uuid', 'status': 'status'}
             supplied = runtime.get('fields', {})
-            if not isinstance(supplied, dict) or set(supplied) - set(runtime_fields):
+            if not isinstance(supplied, dict) or set(supplied) - (set(runtime_fields) | {'workers', 'coordinator_pid'}):
                 raise ValueError('unknown runtime mapping')
+            if ('workers' in supplied) != ('coordinator_pid' in supplied):
+                raise ValueError('runtime workers and coordinator_pid mappings are required together')
             runtime_fields.update(supplied)
             if any(not isinstance(v, str) or not v for v in runtime_fields.values()):
                 raise ValueError('runtime fields must be dot-separated names')
