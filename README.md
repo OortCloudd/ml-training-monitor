@@ -46,6 +46,9 @@ training speed or a successful deployment on another cluster.
 | Input, forward/backward and optimizer host timing | `Monitor.phase()` around the phases you want to observe |
 | Checkpoint, validation and other work outside updates | `Monitor.operation()` |
 | Diagnostic history, a selectable observation, and model details | Your logged diagnostic scalars and model metadata |
+| Compare common diagnostics at the same update or their latest checks | Shared metric keys/units and existing diagnostic histories |
+| Total variance, RMS dispersion and centered energy fraction | Explicit mappings of existing sample standard deviations and norm moments |
+| One run associated with several local GPU workers | An explicit allocation record and matching sole compute PIDs on every declared GPU |
 | Detailed CPU/GPU interval breakdown and capture history | Optional scheduled PyTorch capture |
 | Nsight kernel counters and measured rooflines | Existing reports, or the optional checkpoint replay worker |
 | Measured investigation leads and reviewed agent proposals | Explicit opt-in to decision support; user approval for each intervention |
@@ -89,6 +92,12 @@ Only the step counter is required for progress. Missing metrics remain missing.
 The browser starts with your actual hardware and an empty run list; there is
 no demo data. Relative paths resolve against the config file, then each run's
 directory. See [integration.md](docs/integration.md) for all field contracts.
+
+Representation diagnostics can be derived from already logged moments without
+running a model; missing inputs remain null. Comparisons use exact shared update
+numbers and preserve each run's configured definitions and references. Local
+multi-worker association verifies ownership; it does not launch distributed
+training or collect remote hosts automatically.
 
 ## Add phase monitoring to a training loop
 

@@ -29,6 +29,8 @@ returns `ml-monitor-snapshot-v1`; the second returns rolling hardware samples.
 | GPU window boundaries, count, gaps and per-metric valid sample counts | `performance.windows`, `performance.dmon_live` |
 | Live units, source fields and metric meanings | `performance.live_metric_definitions` |
 | Run progress, loss, step time and gradients | `runs[]` |
+| Diagnostic definitions, units and configured references | `runs[].diagnostics` |
+| Diagnostic observations and their exact update numbers | `runs[].health_points`, `runs[].health_step`, `runs[].health` |
 | Exact recent update window and valid counts for displayed means | `runs[].telemetry_window` |
 | Useful-model FLOP throughput, MFU estimate/bounds and provenance | `runs[].mfu`; see [MFU](mfu.md) |
 | Timestamp provenance, age and reported clock offset | `runs[].freshness` |
@@ -43,6 +45,19 @@ the matching sole compute PID before attributing it to a training run.
 Source timestamps and file modification times are distinguished. Profiled
 updates remain in live timing means, with their known count exposed; an absent
 profiling flag is not interpreted as an unprofiled update.
+
+Configured representation moments can add `total_variance`,
+`centered_feature_rms` and `centered_energy_fraction` to the diagnostic points.
+These are derived from existing sample standard deviations and norm moments;
+the monitor does not extract embeddings or infer a model-quality score. See
+[the moment contract](integration.md#diagnostic-panels-and-model-details). An absent
+source remains null. Compare an exact common update or explicitly retain the
+different updates of each run's latest observation.
+
+For explicitly mapped local GPU workers, association is verified only when all
+declared worker PIDs own their GPUs exclusively. The GPUs share one run ID and
+one canonical progress stream; the coordinator identifies the capture process.
+This allocation check does not imply remote or distributed profiling support.
 
 `runs[].producer_status` preserves a recognized producer state (`RUNNING`,
 `PAUSED`, `FAILED`, `COMPLETE`), or null when unavailable. Pause/failure override

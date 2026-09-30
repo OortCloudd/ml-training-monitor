@@ -24,6 +24,7 @@ start on one host. A demonstration run is optional, not an installation prerequi
 | Request | Start here | Result |
 | --- | --- | --- |
 | Current progress, ETA, hardware or training status | [Agent access](docs/agent-access.md), [runtime inspection](docs/runtime-inspection.md) | Timestamped answer from the actual run and measurement window |
+| Representation diagnostics or comparisons between runs | [Agent access](docs/agent-access.md), [diagnostic integration](docs/integration.md#diagnostic-panels-and-model-details) | Configured scalar histories, optional moments-derived variance and exact shared-update comparisons |
 | Install, adapt to GPUs/clusters, or migrate a dashboard | [Environment adaptation](docs/environment-adaptation.md), [integration](docs/integration.md), [unification](docs/unification.md) | Working connection to the user's environment, with validated scope and preserved panels |
 | Useful GPU compute throughput / MFU | [MFU](docs/mfu.md) | Shared `runs[].mfu` result for the dashboard and agents, with its evidence and limits |
 | Slow training or an optimization request | [Performance engineering](docs/performance-engineering.md) | Bottleneck evidence, bounded intervention and appropriate equivalence checks |
@@ -43,6 +44,12 @@ boundary. The dashboard and agent consume the same `/api/metrics` contract.
 Keep measured data, analytical estimates, bounds and interpretation distinct.
 Missing values stay missing; stale profiles retain their dates. High GPU activity
 does not prove high MFU, bandwidth saturation, useful throughput or model quality.
+
+Read diagnostic definitions in `runs[].diagnostics` and observations in
+`runs[].health_points`. Optional `embedding_moments` derives variance, RMS
+dispersion and centered energy fraction from existing logs, with an explicit
+sample-standard-deviation convention. Matching update numbers do not establish
+equivalent recipes or panels; interpret the configured scope before comparing.
 
 Connect existing logs before adding hooks. Preserve model/data/optimizer/RNG,
 accumulation, checkpoint and resume semantics. Do not change the scientific
